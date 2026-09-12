@@ -75,11 +75,15 @@ try {
     const source = path.join(temporary, 'scan-input'); fs.mkdirSync(source);
     fs.writeFileSync(path.join(source, 'math.ts'), 'export function twice(n: number) { return n * 2; }\n');
     fs.writeFileSync(path.join(source, 'main.ts'), "import {twice as calculate} from './math.js'; calculate(3);\n");
+    fs.writeFileSync(path.join(source, 'service.py'), 'def run():\n    save()\n');
     const snapshotFile = path.join(temporary, 'source-snapshot.json');
     const summary = JSON.parse(run(process.execPath, [adapter, 'scan', source, snapshotFile, '--source-id', 'package-test']));
-    assert.equal(summary.ok, true); assert.equal(summary.summary.analyzed, 2);
+    assert.equal(summary.ok, true); assert.equal(summary.summary.analyzed, 3);
     run(cli, ['scan-check', snapshotFile]);
     const snapshot = JSON.parse(fs.readFileSync(snapshotFile, 'utf8'));
+    const python = snapshot.files.find(f => f.language === 'python');
+    assert.equal(python.analysis.level, 'syntax');
+    assert.ok(snapshot.references.some(r => r.fileRef === python.id && r.name === 'save' && r.resolution.reason === 'syntax-only-no-resolution'));
     const target = snapshot.declarations.find(d => d.name === 'twice' && d.kind === 'function');
     const incoming = JSON.parse(run(cli, ['scan-query', snapshotFile, 'references', target.id]));
     assert.ok(incoming.results.some(r => r.name === 'calculate' && r.kind === 'call' && r.resolution.status === 'resolved'));

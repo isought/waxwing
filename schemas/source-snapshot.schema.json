@@ -255,6 +255,57 @@
             "parsed",
             "errors"
           ]
+        },
+        "analysis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "backend",
+            "version",
+            "level",
+            "capabilities",
+            "limitations"
+          ],
+          "properties": {
+            "backend": {
+              "enum": [
+                "typescript",
+                "tree-sitter"
+              ]
+            },
+            "version": {
+              "$ref": "#/$defs/text"
+            },
+            "grammar": {
+              "$ref": "#/$defs/text"
+            },
+            "level": {
+              "enum": [
+                "bindings",
+                "syntax"
+              ]
+            },
+            "capabilities": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "declarations",
+                  "containment",
+                  "call-occurrences",
+                  "module-occurrences",
+                  "binding-resolution",
+                  "import-value-provenance"
+                ]
+              }
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/text"
+              }
+            }
+          }
         }
       },
       "allOf": [
@@ -341,7 +392,8 @@
             "enum",
             "enum-member",
             "namespace",
-            "import-binding"
+            "import-binding",
+            "table"
           ]
         },
         "name": {

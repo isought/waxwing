@@ -1,16 +1,23 @@
 # Source scanning — development preview
 
-The scanner reads JavaScript and TypeScript source and produces a separate
-`0.1-source-draft` snapshot of files, named declarations, module occurrences and
-identifier references. It is useful for locating code and following static
-bindings before authoring an explanation. It does not generate architecture
-models or establish intent, runtime behavior or proof obligations.
+The scanner produces a separate `0.1-source-draft` snapshot of source evidence.
+JavaScript and TypeScript retain the dedicated TypeScript compiler adapter;
+additional languages use a shared Tree-sitter syntax adapter. Neither infers
+architectural intention or proves runtime behavior.
 
-This is the first implementation slice. Kotlin, Java, Python, Go,
-Objective-C/Objective-C++, SQL, JSON, shell and **Lean 4** remain initial release
-targets; their adapters are not implemented yet. They appear as skipped files
-when encountered. JSON manifests and project configuration are not interpreted
-by this preview.
+| Coverage | Languages / scope |
+| --- | --- |
+| Compiler bindings | JavaScript, TypeScript |
+| Baseline syntax | Kotlin, Java, Python, Go, Objective-C, C, C++, C#, Rust, Ruby, Swift |
+| Data / script syntax | Generic SQL table/view declarations and invocations; JSON keys/nesting; Bash function/command syntax |
+| Partial surface | `.mm` files use the Objective-C grammar; C++ constructs are not reliably covered |
+| Still unsupported | Lean 4, and extensions absent from the tested registry |
+
+The pinned grammar bundle contains many more grammars than Waxwing enables.
+Only profiles with extraction fixtures are advertised. This is broad baseline
+coverage, not equivalent semantic support across languages. Lean remains a first
+scanner-release target: the current WASM bundle does not contain its grammar,
+and proof/elaboration evidence still needs a dedicated integration.
 
 ## Run it
 
@@ -55,7 +62,47 @@ symlinks. Outputs are computed and validated before an atomic file replacement.
 Source text is not embedded. Names, paths, import specifiers and diagnostics may
 still contain source information, so review snapshots before sharing them.
 
-## What gets analyzed
+## Hybrid coverage and maintenance
+
+`sourceLanguageProfiles` (exported from `@isought/waxwing/analysis`) assigns
+extensions to an analysis backend. Both backends emit the same source records,
+so queries, evidence links and the maintained viewer work across languages.
+The scanner loads only the needed backends and grammar modules. Installed WASM
+files are used locally; scans do not fetch grammars or execute repository code.
+
+Each analyzed file now carries optional `analysis` metadata: `backend`, `version`,
+`grammar` where applicable, `level`, `capabilities`, and `limitations`. Older
+snapshots without this field remain readable. The snapshot producer records the
+hybrid configuration; changes to metadata participate in snapshot identity.
+
+Tree-sitter profiles extract selected named declarations, lexical containment,
+call/constructor occurrences and import/include syntax. All their reference
+targets remain unresolved with `syntax-only-no-resolution` (or `syntax-errors`).
+Same-name matches are not promoted to bindings. No type analysis, module lookup,
+callback inference, inter-language links, macro expansion or proof checking runs.
+Missing/ERROR nodes produce source diagnostics; recovered records remain usable.
+A successful parse is acceptance by the pinned grammar, not the language compiler.
+
+For syntax-only files the viewer shows occurrences directly, a coverage notice,
+and all extracted declarations. JSON keys and SQL tables are navigable without
+pretending they are functions. SQL tables/views use the `table` declaration kind;
+JSON keys use `property`. SQL relation references/lineage, JSON configuration
+semantics, Bash command/source resolution and full Objective-C++ are not implemented.
+C headers default to C; extension detection does not inspect build configuration.
+
+The shared implementation is in `modules/analysis/tree-sitter.mjs`, with small
+language rules in `tree-sitter-profiles.mjs`. To add a language, choose a pinned
+grammar, add a profile and extension mapping, and add fixtures that verify actual
+records and spans. To deepen a language, replace or enrich its provider while
+preserving evidence qualifications. Parser availability alone is not support.
+
+The tradeoff is installation size: `tree-sitter-wasm@2.0.1` contains approximately
+119 MB of unpacked grammars/queries, including unused grammars. It is an installed
+dependency, not embedded in generated viewers. Grammar loading is lazy and trees
+are freed after extraction. Splitting the grammar bundle and incremental graph
+updates are future optimizations; the initial implementation remains a batch scan.
+
+## JavaScript / TypeScript analysis
 
 - JavaScript: `.js`, `.jsx`, `.mjs`, `.cjs`.
 - TypeScript: `.ts`, `.tsx`, `.mts`, `.cts`, including declaration files.
@@ -187,10 +234,9 @@ without the original source bytes it cannot re-establish the claimed evidence.
   candidates, or `unresolved` with no targets. Every outcome carries its basis or
   unresolved reason. Same-named declarations do not automatically connect.
 
-The snapshot records source containment, not organizational hierarchy. Future
-architecture evidence links can refer to a snapshot ID plus record ID; this
-branch does not implement those mappings or merge source records into existing
-architecture/sequence schemas. Lean code/proof extraction will need its own
+The snapshot records source containment, not organizational hierarchy. Optional
+architecture evidence links refer to a snapshot ID plus record ID; source records
+remain separate from architecture/sequence schemas. Lean code/proof extraction will need its own
 appropriate declarations and verification evidence, including elaboration and
 axiom/incomplete-proof status.
 
