@@ -1960,5 +1960,27 @@ elaboration links separately from collection navigation. Start with `workspace
 check`, then `workspace affected` using the registered IDs of changed sources or
 models. Treat results as potential review scope, preserve access gaps and user
 authorization, and record evidence revisions and outcomes in an update report.
-No command fetches remote sources, scans repositories, or decides which claims
-are still accurate. See the workspace guide for the complete workflow.
+Workspace commands do not fetch remote sources, scan repositories, or decide
+which claims are still accurate. See the workspace guide for the complete workflow.
+
+## Source scanning preview
+
+This development branch additionally provides `scan`, `scan-check` and
+`scan-query` for JavaScript/TypeScript. Use the installed adapter's `guide scanning`
+or the [scanner guide](docs/source-scanning.md) for commands, the source schema,
+library APIs and precise coverage limits. Scans produce separate source snapshots;
+they do not replace architecture/sequence authoring or prove architectural claims.
+
+Scan only authorized source directories and write the snapshot outside them.
+Inspect skipped files, parse diagnostics and unresolved/ambiguous references
+before interpreting results. A resolved target is a static binding within the
+recorded compiler configuration, not evidence of runtime execution. Prefer explicit
+evidence and human explanations for terms, intended boundaries, goals and assumptions.
+Other language adapters, including Lean 4, remain initial release work.
+
+The preview also includes `scan-view` for a standalone source graph and
+`build-connected` for optional system-to-source navigation with recorded rationale
+and verified source excerpts. Use the scanner guide for the separate connection
+contract. A stale connection disables navigation between levels, not either
+level's independent usefulness. Generate useful source evidence first; ask people
+for consequential gaps in terminology, intended boundaries, and situated reasons.

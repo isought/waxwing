@@ -35,7 +35,7 @@ test('implementation imports follow responsibility boundaries and never go throu
     for (const specifier of imports) {
       if (specifier.startsWith('node:')) continue;
       if (!specifier.startsWith('.')) {
-        if (!['ajv', 'markdown-it', ...(owner === 'presentation' ? ['elkjs'] : [])].some(name => specifier === name || specifier.startsWith(name + '/'))) {
+        if (!['ajv', 'markdown-it', ...(owner === 'presentation' ? ['elkjs'] : []), ...(owner === 'analysis' ? ['typescript'] : [])].some(name => specifier === name || specifier.startsWith(name + '/'))) {
           violations.push(`${path.relative(root, file)} imports unassigned dependency ${specifier}`);
         }
         continue;

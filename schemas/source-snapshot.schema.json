@@ -1,0 +1,451 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Waxwing source snapshot \u2014 draft 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "source",
+    "producer",
+    "coverage",
+    "files",
+    "declarations",
+    "references",
+    "diagnostics",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1-source-draft"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^snapshot-[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/text"
+        },
+        "gitHead": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40,64}$"
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "adapterVersion",
+        "configuration"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "version": {
+          "$ref": "#/$defs/text"
+        },
+        "adapterVersion": {
+          "$ref": "#/$defs/text"
+        },
+        "configuration": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovery",
+        "discoveryComplete",
+        "excludedDirectories",
+        "limits"
+      ],
+      "properties": {
+        "discovery": {
+          "enum": [
+            "provided-inputs",
+            "git-working-tree",
+            "filesystem"
+          ]
+        },
+        "discoveryComplete": {
+          "type": "boolean"
+        },
+        "excludedDirectories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/text"
+          },
+          "uniqueItems": true
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxFiles": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxFileBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxTotalBytes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/file"
+      }
+    },
+    "declarations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/declaration"
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reference"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/$defs/text"
+          },
+          "message": {
+            "$ref": "#/$defs/text"
+          },
+          "fileRef": {
+            "$ref": "#/$defs/id"
+          },
+          "span": {
+            "$ref": "#/$defs/span"
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^(file|decl|ref)-[a-f0-9]{64}$"
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offset",
+        "line",
+        "column"
+      ],
+      "properties": {
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/position"
+        },
+        "end": {
+          "$ref": "#/$defs/position"
+        }
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "language",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "path": {
+          "$ref": "#/$defs/text"
+        },
+        "language": {
+          "$ref": "#/$defs/text"
+        },
+        "status": {
+          "enum": [
+            "analyzed",
+            "skipped"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        },
+        "contentDigest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "textLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parseStatus": {
+          "enum": [
+            "parsed",
+            "errors"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "analyzed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "contentDigest",
+              "byteLength",
+              "textLength",
+              "parseStatus"
+            ],
+            "not": {
+              "required": [
+                "reason"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "reason"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "contentDigest"
+                  ]
+                },
+                {
+                  "required": [
+                    "textLength"
+                  ]
+                },
+                {
+                  "required": [
+                    "parseStatus"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "declaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "fileRef",
+        "containerRef",
+        "kind",
+        "name",
+        "span"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "fileRef": {
+          "$ref": "#/$defs/id"
+        },
+        "containerRef": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "function",
+            "class",
+            "method",
+            "variable",
+            "parameter",
+            "property",
+            "interface",
+            "type-alias",
+            "type-parameter",
+            "enum",
+            "enum-member",
+            "namespace",
+            "import-binding"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "valueProvenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "moduleRef",
+            "resolution"
+          ],
+          "properties": {
+            "kind": {
+              "const": "await-import"
+            },
+            "moduleRef": {
+              "$ref": "#/$defs/id"
+            },
+            "importedName": {
+              "$ref": "#/$defs/text"
+            },
+            "resolution": {
+              "$ref": "#/$defs/resolution"
+            }
+          }
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "fileRef",
+        "containerRef",
+        "kind",
+        "name",
+        "span",
+        "resolution"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "fileRef": {
+          "$ref": "#/$defs/id"
+        },
+        "containerRef": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "reference",
+            "call",
+            "construct",
+            "import",
+            "re-export",
+            "dynamic-import",
+            "require"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "resolution": {
+          "$ref": "#/$defs/resolution"
+        }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "targets",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "resolved",
+            "ambiguous",
+            "unresolved"
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "reason": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    }
+  }
+}

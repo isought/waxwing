@@ -71,6 +71,36 @@ try {
   assert.deepEqual(plan.reviews.map(m=>m.id),['organization','checkout','retry']);
   assert.deepEqual(plan.unaffected,['markets']);
   assert.match(run(process.execPath,[adapter,'guide','workspace']),/workspace affected/);
+  if (manifest.exports['./scan']) {
+    const source = path.join(temporary, 'scan-input'); fs.mkdirSync(source);
+    fs.writeFileSync(path.join(source, 'math.ts'), 'export function twice(n: number) { return n * 2; }\n');
+    fs.writeFileSync(path.join(source, 'main.ts'), "import {twice as calculate} from './math.js'; calculate(3);\n");
+    const snapshotFile = path.join(temporary, 'source-snapshot.json');
+    const summary = JSON.parse(run(process.execPath, [adapter, 'scan', source, snapshotFile, '--source-id', 'package-test']));
+    assert.equal(summary.ok, true); assert.equal(summary.summary.analyzed, 2);
+    run(cli, ['scan-check', snapshotFile]);
+    const snapshot = JSON.parse(fs.readFileSync(snapshotFile, 'utf8'));
+    const target = snapshot.declarations.find(d => d.name === 'twice' && d.kind === 'function');
+    const incoming = JSON.parse(run(cli, ['scan-query', snapshotFile, 'references', target.id]));
+    assert.ok(incoming.results.some(r => r.name === 'calculate' && r.kind === 'call' && r.resolution.status === 'resolved'));
+    assert.match(run(process.execPath, [adapter, 'guide', 'scanning']), /development preview/);
+    if (manifest.exports['./source-view']) {
+      const viewFile = path.join(temporary, 'source.html');
+      run(process.execPath, [adapter, 'scan-view', snapshotFile, viewFile]);
+      assert.match(fs.readFileSync(viewFile, 'utf8'), /Find a file or function/);
+    }
+    if (manifest.exports['./connected']) {
+      const connected = path.join(temporary, 'connected-site');
+      const example = path.join(installed, 'examples', 'order-processing', 'model.json');
+      const result = JSON.parse(run(process.execPath, [adapter, 'build-connected', example, snapshotFile, '-', connected, '--source-root', source]));
+      assert.equal(result.connections, 0);
+      assert.deepEqual(result.diagnostics, []);
+      assert.ok(fs.existsSync(path.join(connected, 'source', 'snapshot.json')));
+      assert.match(fs.readFileSync(path.join(connected, 'source', 'index.html'), 'utf8'), /Find a file or function/);
+      run(cli, ['recover', connected, path.join(temporary, 'connected-recovered.json')]);
+    }
+    console.log('Source scanner package check passed: installed adapter, schema validation and bound-reference queries.');
+  }
   console.log(`Package smoke check passed: ${manifest.name}@${manifest.version}, ${paths.length} files, ${pack.size} compressed bytes; integrity ${pack.integrity}; exports, recovery, collections, queries, workspace lineage, installed skill binding/build/update passed.`);
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });

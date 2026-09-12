@@ -6,7 +6,7 @@ import { canonical, digest } from '../knowledge/shared/model.mjs';
 
 const hash = (data) => createHash('sha256').update(data).digest('hex');
 const manifestName = 'waxwing-site.json';
-const validPath = (p) => typeof p==='string' && /^(?:index\.html|search\.html|records\.html|(?:graphs|workflows|documents)\/[a-z][a-z0-9_-]*\.html|source\/(?:model|layout)\.json|assets\/(?:site\.(?:css|js)|search\.js))$/.test(p);
+const validPath = (p) => typeof p==='string' && /^(?:index\.html|search\.html|records\.html|(?:graphs|workflows|documents)\/[a-z][a-z0-9_-]*\.html|source\/(?:(?:model|layout|snapshot|links)\.json|index\.html)|assets\/(?:site\.(?:css|js)|search\.js))$/.test(p);
 const collectionName='waxwing-collection.json';
 const collectionPath=p=>['index.html','search.html','collection.json','assets/site.css','assets/search.js'].includes(p)||/^sites\/[a-z][a-z0-9_-]*\//.test(p)&&(p.split('/').slice(2).join('/')===manifestName||validPath(p.split('/').slice(2).join('/')));
 function manifestOf(text, collection=false) {

@@ -13,7 +13,7 @@ const topics={
   'example-scenario':['Complete sequence scenario example'],
   'example-behavior':['Complete sequence behavior example'],
 };
-const topicDocs = { collections: 'collections.md', queries: 'model-queries.md', workspace: 'workspace.md' };
+const topicDocs = { collections: 'collections.md', queries: 'model-queries.md', workspace: 'workspace.md', scanning: 'source-scanning.md' };
 
 export function guideSections(guide) {
   const sections=new Map();let heading,body=[],fence;

@@ -10,8 +10,13 @@ const usage = `Waxwing — experimental modular diagram tool
   waxwing render <layout.json> <output.svg|output.html> [--graph graph-id | --workflow workflow-id]
   waxwing render-site <layout.json> <output-directory>
   waxwing build-site <model.json> <output-directory> [--group perspective-id] [--direction RIGHT|DOWN]
+  waxwing build-connected <model.json> <scan.json> <links.json|-> <output-directory> [--source-root directory] [--direction RIGHT|DOWN]
   waxwing build-collection <collection.json> <output-directory>
   waxwing skill install <skill-directory>
+  waxwing scan <source-directory> <scan.json> [--source-id id] [--max-files 10000] [--max-file-bytes 1048576] [--max-total-bytes 33554432]
+  waxwing scan-view <scan.json> <source.html>
+  waxwing scan-check <scan.json>
+  waxwing scan-query <scan.json> <search|inspect|references|imports|functions|outgoing> <text-or-id> [--limit 20] [--offset 0] [--budget 12000]
   waxwing workspace check <workspace.json> [--format json|markdown]
   waxwing workspace affected <workspace.json> [--source source-id] [--model model-id] [--format json|markdown]
   waxwing query <model.json> <search|inspect|neighbors|workflows|workflow> <text-or-id> [--limit 20] [--budget 12000] [--offset 0] [--kind kind] [--direction incoming|outgoing|both] [--relation kind]
@@ -30,7 +35,9 @@ workspace records evidence and elaboration across locations; affected produces a
 query reads recorded model knowledge; its budget bounds result characters, not tokens or the metadata envelope.
 render-site accepts JSON 2 directly; neither requires a Waxwing server.
 validate, prepare, layout, build, and build-site load explicitly registered Markdown files and local raster images.
-No command scans repositories, fetches source locators, or calls an LLM.`;
+scan indexes JavaScript/TypeScript source into a separate snapshot; write its output outside the source directory.
+scan-query reads that snapshot; query continues to read authored architecture/sequence models.
+No command executes scanned code, fetches source locators, or calls an LLM.`;
 
 function layoutArgs(args) {
   const options = {};
@@ -54,6 +61,37 @@ function layoutArgs(args) {
 const [command, ...args] = process.argv.slice(2);
 try {
   if (!command || ['--help', '-h', 'help'].includes(command)) console.log(usage);
+  else if (command === 'scan') {
+    if (args.length < 2 || (args.length - 2) % 2) throw new Error('scan requires a source directory, output JSON path, and optional flag/value pairs.');
+    const options = {}, keys = { '--source-id': 'sourceId', '--max-files': 'maxFiles', '--max-file-bytes': 'maxFileBytes', '--max-total-bytes': 'maxTotalBytes' };
+    for (let i = 2; i < args.length; i += 2) {
+      const key = keys[args[i]];
+      if (!key || Object.hasOwn(options, key)) throw new Error(`Unknown or repeated scan option ${args[i]}.`);
+      options[key] = key === 'sourceId' ? args[i + 1] : Number(args[i + 1]);
+    }
+    const { scanRepositoryToFile } = await import('../application/scan.mjs');
+    console.log(JSON.stringify(await scanRepositoryToFile(args[0], args[1], options), null, 2));
+  } else if (command === 'scan-view') {
+    if (args.length !== 2) throw new Error('scan-view requires a snapshot JSON file and output HTML path.');
+    const { renderSourceFile } = await import('../application/scan.mjs');
+    console.log(JSON.stringify({ ok: true, ...await renderSourceFile(args[0], args[1]) }, null, 2));
+  } else if (command === 'scan-check') {
+    if (args.length !== 1) throw new Error('scan-check requires one source snapshot JSON file.');
+    const { loadSourceSnapshot } = await import('../application/scan.mjs');
+    const { validateSourceSnapshot } = await import('../knowledge/source/index.mjs');
+    console.log(JSON.stringify(validateSourceSnapshot(loadSourceSnapshot(args[0])), null, 2));
+  } else if (command === 'scan-query') {
+    if (args.length < 3 || (args.length - 3) % 2) throw new Error('scan-query requires a snapshot, operation, value, and optional flag/value pairs.');
+    const options = {};
+    for (let i = 3; i < args.length; i += 2) {
+      const key = args[i].slice(2);
+      if (!['--limit', '--offset', '--budget'].includes(args[i]) || Object.hasOwn(options, key)) throw new Error(`Unknown or repeated source query option ${args[i]}.`);
+      options[key] = Number(args[i + 1]);
+    }
+    const { loadSourceSnapshot } = await import('../application/scan.mjs');
+    const { querySourceSnapshot } = await import('../knowledge/source/index.mjs');
+    console.log(JSON.stringify({ ok: true, ...querySourceSnapshot(loadSourceSnapshot(args[0]), args[1], args[2], options) }, null, 2));
+  }
   else if (command === 'validate') {
     if (args.length !== 1) throw new Error('validate requires one JSON 1 file.');
     const { validateModel } = await import('../knowledge/architecture/model.mjs');
@@ -103,6 +141,18 @@ try {
     const {loadModel}=await import('../application/load-model.mjs');
     const {queryModel}=await import('../knowledge/query/index.mjs');
     console.log(JSON.stringify({ok:true,...queryModel(loadModel(args[0]).model,args[1],args[2],options)},null,2));
+  } else if (command === 'build-connected') {
+    if (args.length < 4 || (args.length - 4) % 2) throw new Error('build-connected requires model, scan, links (or -), output directory, and optional flag/value pairs.');
+    let sourceRoot;
+    const rest = [];
+    for (let i = 4; i < args.length; i += 2) {
+      if (args[i] === '--source-root') {
+        if (sourceRoot !== undefined) throw new Error('Repeated --source-root option.');
+        sourceRoot = args[i + 1];
+      } else rest.push(args[i],args[i + 1]);
+    }
+    const {buildConnectedSiteFiles} = await import('../application/connected.mjs');
+    console.log(JSON.stringify({ok:true,...await buildConnectedSiteFiles(args[0],args[1],args[2] === '-' ? null : args[2],args[3],{...layoutArgs(rest),...(sourceRoot !== undefined ? {sourceRoot} : {})})},null,2));
   } else if (command === 'render-site' || command === 'build-site') {
     if (args.length < 2 || (command === 'render-site' && args.length !== 2)) throw new Error(`${command} requires input and output directory paths.`);
     const { buildSiteFiles, renderSiteFile } = await import('../application/pipeline.mjs');
@@ -124,6 +174,6 @@ try {
     console.log(JSON.stringify({ ok: true, ...await recoverModelFile(args[0], args[1]) }));
   } else throw new Error(`Unknown command "${command}". Run with --help.`);
 } catch (error) {
-  console.error(JSON.stringify({ ok: false, command, ...(args[0] && ['validate','prepare','layout','check-layout','render','recover','build','render-site','build-site','build-collection','query'].includes(command) ? {input: path.resolve(args[0])} : {}), message: error.message, diagnostics: error.diagnostics ?? [] }, null, 2));
+  console.error(JSON.stringify({ ok: false, command, ...(args[0] && ['scan','scan-view','scan-check','scan-query','validate','prepare','layout','check-layout','render','recover','build','render-site','build-site','build-connected','build-collection','query'].includes(command) ? {input: path.resolve(args[0])} : {}), message: error.message, diagnostics: error.diagnostics ?? [] }, null, 2));
   process.exitCode = 1;
 }
