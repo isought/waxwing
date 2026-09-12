@@ -146,6 +146,7 @@ modules/
     query/         Bounded retrieval of recorded knowledge
     records/       In-memory model update inventories
     workspace/     Manifest validation and potential review scope
+    source/        Source snapshot validation, identity and bounded queries
     shared/        Qualified claims, canonical serialization and diagnostics
   presentation/
     layout/        ELK adapter, geometry validation and readability checks
@@ -154,12 +155,13 @@ modules/
     workflow/      Drawing constraints, geometry and workflow rendering
     documents/     Document HTML and navigation URLs
     site/          Page composition, assets and search presentation
+    source/        File/function navigation and source evidence HTML
     workspace/     Markdown review reports
     shared/        Display text and drawing metrics
   application/     File loading, build/render/recover workflows, site writes,
                    collection builds and update review coordination
   interfaces/      CLI arguments/results and skill installation/guide access
-  analysis/        Reserved source-analysis boundary; design notes only
+  analysis/        JS/TS source extraction and static binding; compiler loaded lazily
   model/, ...      Existing module paths retained as compatibility entry points
 schemas/       JSON 1 and JSON 2 contracts
 bin/           Stable executable entry point
@@ -184,7 +186,8 @@ Each responsibility may also import its own modules. Only interfaces may use
 the packaged skill adapter. New implementation code imports the owning module
 directly, never an old compatibility entry point. The public npm subpaths stay
 unchanged; their exports can combine several responsibilities for existing
-callers. These internal directory names are not new public package exports.
+callers. Internal subdirectories remain private; the new source APIs are
+documented in the scanner guide.
 
 Knowledge functions operate on supplied records. Validators read bundled JSON
 schemas at initialization, but do not open user models, fetch evidence, import
@@ -211,9 +214,13 @@ packages can follow later if needed.
 
 ### Source analysis and future interfaces
 
-The [analysis notes](../modules/analysis/README.md) record the next implementation
-boundary and initial language targets, including Lean 4. No scanner or proof
-checker is implemented by this refactor. Source/code/proof models should remain
+The [source scanner preview](source-scanning.md) implements JavaScript/TypeScript
+extraction into a separate source snapshot. `@isought/waxwing/analysis` accepts
+in-memory sources, `@isought/waxwing/scan` handles repository I/O, and
+`@isought/waxwing/source` validates and queries snapshots without a compiler.
+The [analysis notes](../modules/analysis/README.md) retain the initial language
+targets, including Lean 4; the remaining adapters and proof checking are still
+planned. Source/code/proof models should remain
 specialized and connect to explanatory models through explicit evidence and
 identity mappings. Diagram IDs and exported URLs do not define code identity.
 
@@ -268,3 +275,10 @@ node bin/waxwing.mjs render /tmp/layout.json /tmp/workflow.svg --workflow checko
 Module separation remains intact: render/validation do not import ELK, and
 artifact recovery retains the complete architecture source, including every
 workflow and document. See the [contract](architecture-workflows.md).
+
+Connected source exports compose `knowledge/source-links` (qualified optional
+connections and identity validation), `presentation/source` (independent source
+graphs and evidence), `presentation/site` (system navigation), and
+`application/connected` (source-byte capture and managed publication). The native
+architecture and source schemas remain independent. Source connections are a
+separate sidecar, not module ownership or a required hierarchy.

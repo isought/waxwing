@@ -219,6 +219,10 @@ Your own producer
 | `@isought/waxwing/skill` | Install the authoring/update skill in an explicit destination, bound to this runtime and its contract. |
 | `@isought/waxwing/workflow` | Inspect architecture workflow scope, participation, and drawing blockers without loading ELK. |
 | `@isought/waxwing/sequence` | Independently validate, lay out, and render a sequence scenario or structured behavior. |
+| `@isought/waxwing/analysis` | Analyze supplied JS/TS source strings into a source snapshot (development preview). |
+| `@isought/waxwing/scan` | Discover local repository files and write/load source snapshots. |
+| `@isought/waxwing/source` | Validate, query and project source navigation without loading the compiler. |
+| `@isought/waxwing/source-view` | Render standalone source-specific file/function navigation HTML. |
 
 These are subpath exports of one npm package. They can be imported
 independently; separately published packages are not part of the initial release. See
@@ -312,3 +316,13 @@ npm test
 
 Archify remains a design reference for structured specifications, SVG/HTML
 presentation, and validation. No Archify code has been copied into this MVP.
+
+The source preview now includes a focused static graph and an optional connected
+site: system component/operation → relevant source entry → exact evidence and
+recorded rationale → original system context. Direct source browsing remains
+available without a system mapping. See [source scanning](source-scanning.md).
+
+The source explorer now offers a recommended internal-call graph, an occurrence
+view, grouped evidence and expandable other calls. A browsing trail and browser
+history preserve exploration context, including service-to-source return links.
+See [source scanning](source-scanning.md#reading-and-navigating-source).

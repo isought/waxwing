@@ -38,6 +38,7 @@ export async function buildCollection(input, output) {
     } else {
       if(entry.layout!==undefined)throw new Error('Layout options apply to model inputs, not existing sites.');
       recoverSite(source); // Verify the complete, unchanged export before using it.
+      if (fs.existsSync(path.join(source,'source/snapshot.json'))) throw new Error('Connected source sites cannot yet be republished in a collection. Keep the connected site separately; collection regeneration would discard its source evidence.');
       inputs.push(path.join(source,'waxwing-site.json'));
       layout=JSON.parse(fs.readFileSync(path.join(source,'source/layout.json'),'utf8'));
     }

@@ -11,10 +11,12 @@ direction, not promised dates.
 3. **Improvements from use.** Address authoring friction, diagnostics, and
    diagram readability revealed by those trials before expanding the feature set.
 4. **Source analysis foundations.** Separate knowledge, presentation, application
-   workflows and interfaces; then define source/code/proof contracts and evaluate
-   language adapters. [Initial targets](modules/analysis/README.md) include Lean 4.
-   This work begins with local analysis and explicit evidence links to explanations.
+   workflows and interfaces. The [scanner preview](docs/source-scanning.md) now
+   extracts JavaScript/TypeScript source records and bindings, with a focused
+   source graph and optional links to authored explanations. Broader adapters,
+   proof metadata, candidate mapping discovery and cross-revision review follow.
+   [Initial release targets](modules/analysis/README.md) include Lean 4.
 
-The current release has no repository scanner, visual editor, or automatic
-infrastructure discovery. Current features and limitations are described
+The published 0.2.0 release predates this scanner preview. No visual editor or
+automatic infrastructure discovery is implemented. Features and limits are described
 in the [README](README.md) and [release notes](CHANGELOG.md).

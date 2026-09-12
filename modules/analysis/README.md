@@ -1,23 +1,29 @@
-# Source analysis boundary — planned
+# Source analysis boundary
 
-This directory reserves an implementation boundary; it contains no scanner yet.
-Analysis will inspect source snapshots and produce evidence-backed records using
-language adapters. It may depend on `knowledge`, and must remain usable without
-presentation or a conversation. Application workflows will coordinate scans,
-storage and subsequent review. Interfaces will expose those workflows.
+This directory implements the first JavaScript/TypeScript scanner slice.
+`index.mjs` accepts supplied source strings; `javascript.mjs` uses the pinned
+TypeScript compiler through a closed in-memory host. `languages.mjs` distinguishes
+recognized extensions from actually supported adapters. See the
+[scanner guide](../../docs/source-scanning.md) for the working APIs and limits.
 
-Before adding adapters, define concrete fixtures for snapshot identity,
+Analysis depends on `knowledge` and remains usable without presentation or a
+conversation. Application workflows coordinate repository discovery and output;
+interfaces expose those workflows. The remaining language/proof adapters are
+planned, not implemented by extension recognition.
+
+Before adding further adapters, extend concrete fixtures for snapshot identity,
 declarations, reference occurrences, resolution results and coverage. Syntax
 recognition, resolved relationships and semantic verification must be reported
 separately. An unresolved reference is a retained observation, and unsupported
 syntax or incomplete coverage must be visible rather than treated as absence.
 An import/reference occurrence does not automatically establish runtime behavior.
 
-Code and proof records will use specialized contracts. Their mappings to
+Code and proof records use specialized contracts. Their mappings to
 architectural explanations must be explicit and may be many to many. Code
 identity must survive changes to display labels and reading views; identity
-across source revisions needs an explicit matching/review policy. This refactor
-does not freeze those contracts or select parser dependencies.
+across source revisions needs an explicit matching/review policy. The current
+source draft binds occurrence IDs to file digests/ranges. Architecture evidence
+mappings and cross-revision continuity are not implemented yet.
 
 ## Initial targets
 

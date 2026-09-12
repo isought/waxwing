@@ -18,12 +18,14 @@
     "demo:workflow": "node bin/waxwing.mjs build examples/orchestration/model.json examples/orchestration/generated",
     "demo:site": "node bin/waxwing.mjs build-site examples/multi-page/model.json examples/multi-page/generated",
     "demo:self": "node bin/waxwing.mjs build-site examples/waxwing/model.json examples/waxwing/generated --direction DOWN",
-    "test:package": "node scripts/smoke-package.mjs"
+    "test:package": "node scripts/smoke-package.mjs",
+    "demo:connected": "node experiments/connected-source/demo.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",
     "elkjs": "0.12.0",
-    "markdown-it": "15.0.1"
+    "markdown-it": "15.0.1",
+    "typescript": "6.0.3"
   },
   "exports": {
     "./model": "./modules/model/index.mjs",
@@ -38,7 +40,13 @@
     "./collection": "./modules/site/collection.mjs",
     "./query": "./modules/query/index.mjs",
     "./skill": "./modules/skill/index.mjs",
-    "./workspace": "./modules/workspace/index.mjs"
+    "./workspace": "./modules/workspace/index.mjs",
+    "./analysis": "./modules/analysis/index.mjs",
+    "./source": "./modules/knowledge/source/index.mjs",
+    "./scan": "./modules/application/scan.mjs",
+    "./source-view": "./modules/presentation/source/index.mjs",
+    "./connected": "./modules/application/connected.mjs",
+    "./source-links": "./modules/knowledge/source-links/index.mjs"
   },
   "bin": {
     "waxwing": "./bin/waxwing.mjs"
