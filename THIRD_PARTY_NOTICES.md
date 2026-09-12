@@ -12,6 +12,13 @@ Waxwing uses the following direct dependencies, pinned in `package-lock.json`:
 - **TypeScript 6.0.3** — JavaScript/TypeScript source parsing and static symbol
   binding; Apache-2.0 license. [Upstream and license](https://github.com/microsoft/TypeScript).
 
+- **web-tree-sitter 0.27.0** — WebAssembly Tree-sitter runtime; MIT license.
+  [Upstream and license](https://github.com/tree-sitter/tree-sitter).
+- **tree-sitter-wasm 2.0.1** — prebuilt language grammars and queries.
+  [Distribution](https://github.com/Crysthamus/tree-sitter-wasm) is MIT; individual
+  grammar/query licenses belong to their upstream authors. The dependency's
+  artifacts stay in its installed package and are not copied into generated sites.
+
 Transitive dependencies retain their own license notices in their distributed
 packages. TypeScript runs only when analyzing source; it is not embedded in source
 snapshots or viewers. No third-party library code is embedded in generated SVG/HTML; ELK,

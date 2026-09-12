@@ -1,0 +1,17 @@
+[
+  {"path":"service.py","content":"import storage\n# ghost()\nclass Service:\n    def run(self):\n        return storage.save()\n","declarations":["Service","run"],"call":"storage.save","import":true},
+  {"path":"Service.java","content":"import app.Store;\nclass Service { void run() { Store.save(); } }\n","declarations":["Service","run"],"call":"Store.save","import":true},
+  {"path":"Service.kt","content":"import app.save\nclass Service {\n  fun run() { save() }\n}\n","declarations":["Service","run"],"call":"save","import":true},
+  {"path":"service.go","content":"package app\nimport \"storage\"\nfunc run() { storage.Save() }\n","declarations":["run"],"call":"storage.Save","import":true},
+  {"path":"Service.m","content":"#import \"Service.h\"\n@implementation Service\n- (void)run { [self save]; }\n@end\n","declarations":["Service","run"],"call":"[self save]","import":true},
+  {"path":"Bridge.mm","content":"#import \"Service.h\"\nvoid run() { save(); }\n","declarations":["run"],"call":"save","import":true},
+  {"path":"schema.sql","content":"-- ghost()\nCREATE TABLE users (id INTEGER);\nSELECT count(*) FROM users;\n","declarations":["users"],"call":"count"},
+  {"path":"settings.json","content":"{\"service\": {\"name\": \"ghost()\", \"url\": \"./other.json\"}}\n","declarations":["service","name","url"]},
+  {"path":"service.sh","content":"# ghost()\nrun() { echo \"hi\"; }\nrun\n","declarations":["run"],"call":"echo"},
+  {"path":"service.c","content":"#include \"store.h\"\nvoid run() { save(); }\n","declarations":["run"],"call":"save","import":true},
+  {"path":"service.cpp","content":"#include \"store.h\"\nnamespace App { class Service { void run() { save(); } }; }\n","declarations":["App","Service","run"],"call":"save","import":true},
+  {"path":"Service.cs","content":"using App;\nclass Service { void Run() { Store.Save(); } }\n","declarations":["Service","Run"],"call":"Store.Save","import":true},
+  {"path":"service.rs","content":"use storage::save;\nstruct Service {}\nfn run() { save(); }\n","declarations":["Service","run"],"call":"save","import":true},
+  {"path":"service.rb","content":"class Service\n  def run\n    store.save()\n  end\nend\n","declarations":["Service","run"],"call":"store.save"},
+  {"path":"service.swift","content":"import Foundation\nfunc run() { save() }\n","declarations":["run"],"call":"save","import":true}
+]

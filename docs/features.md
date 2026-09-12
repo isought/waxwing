@@ -326,3 +326,10 @@ The source explorer now offers a recommended internal-call graph, an occurrence
 view, grouped evidence and expandable other calls. A browsing trail and browser
 history preserve exploration context, including service-to-source return links.
 See [source scanning](source-scanning.md#reading-and-navigating-source).
+
+The hybrid scanner retains JS/TS compiler bindings and adds tested Tree-sitter
+syntax profiles for Kotlin, Java, Python, Go, Objective-C, SQL, JSON, Bash, C,
+C++, C#, Rust, Ruby and Swift. `.mm` has only the Objective-C surface; Lean is
+still unsupported. File coverage identifies the backend and capabilities.
+Syntax-only targets remain unresolved; the viewer shows observed occurrences
+and extracted declarations. See the [coverage table](source-scanning.md).

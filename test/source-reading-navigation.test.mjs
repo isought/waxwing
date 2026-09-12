@@ -6,12 +6,13 @@ import { renderSourceHTML } from '../modules/presentation/source/index.mjs';
 
 // Execute the shipped HTML's event handlers. This adapter supplies only the DOM
 // and History surfaces they use; visual layout is checked in a real browser.
-async function viewer() {
+async function viewer(input) {
   const content=`export function A(){ B(); }\nexport function B(){ C(); C(); ${Array.from({length:9},(_,i)=>`D${i}();`).join(' ')} }\nexport function C(){}\n${Array.from({length:9},(_,i)=>`function D${i}(){}`).join('\n')}\nA();`;
-  const snapshot=await analyzeSources([{path:'main.mjs',content}]);
+  const sources=input ? [input] : [{path:'main.mjs',content}];
+  const snapshot=await analyzeSources(sources);
   const ids=Object.fromEntries(snapshot.declarations.filter(d=>d.kind==='function').map(d=>[d.name,d.id]));
   const connection={id:'entry',entryRef:ids.A,evidenceRefs:[],label:'Service entry',subjectLabel:'Service B',returnURL:'../graphs/service.html',sources:[],basis:{status:'established',explanation:'Explicit entry mapping.',sourceRefs:[]},rationale:[]};
-  const html=renderSourceHTML(snapshot,{sourceTexts:{[snapshot.files[0].id]:content},connections:[connection]});
+  const html=renderSourceHTML(snapshot,{sourceTexts:{[snapshot.files[0].id]:sources[0].content},connections:ids.A ? [connection] : []});
   const elements=new Map(),listeners={},documentListeners={};
   class Element {
     constructor(attrs='',parent=null){this.attributes={};this.dataset={};this.events={};this.children=[];this.parent=parent;this.value='';this.scrollTop=0;this.clientWidth=900;this.checked=false;
@@ -30,7 +31,7 @@ async function viewer() {
   }
   const get=id=>{if(!elements.has(id))elements.set(id,new Element(`id="${id}"`));return elements.get(id);};
   get('source-data').textContent=html.match(/<script type="application\/json" id="source-data">(.*?)<\/script>/s)[1];
-  const location={hash:'#'+ids.A,search:'?context=entry'},entries=[{state:null,url:location.search+location.hash}];let index=0;
+  const location={hash:'#'+(ids.A ?? ids.run ?? snapshot.files[0].id),search:'?context=entry'},entries=[{state:null,url:location.search+location.hash}];let index=0;
   const update=url=>{location.hash=url.slice(url.indexOf('#'));};
   const history={get state(){return entries[index].state;},replaceState(state,_,url){entries[index]={state:structuredClone(state),url};update(url);},pushState(state,_,url){entries.splice(++index);entries.push({state:structuredClone(state),url});update(url);},back(){if(index){index--;update(entries[index].url);listeners.popstate?.({state:entries[index].state});}},forward(){if(index+1<entries.length){index++;update(entries[index].url);listeners.popstate?.({state:entries[index].state});}}};
   vm.runInNewContext(html.match(/<script>(.*?)<\/script>/s)[1],{URLSearchParams,document:{getElementById:get,addEventListener:(k,f)=>documentListeners[k]=f},window:{location,history,addEventListener:(k,f)=>listeners[k]=f}});
@@ -55,4 +56,24 @@ test('production grouped evidence opens without replacing the graph focus',async
 test('module-scope callers show file names and navigate to file contents',async()=>{
  const app=await viewer();assert.ok(app.nodes().some(e=>e.attributes['aria-label']==='Focus main.mjs'));
  app.nodes().find(e=>e.attributes['aria-label']==='Focus main.mjs').click();assert.match(app.get('detail').innerHTML,/<h1>main.mjs<\/h1>/);assert.match(app.get('detail').innerHTML,/Functions & classes/);
+});
+
+test('syntax-only functions show observed calls and coverage without a misleading resolved graph', async () => {
+ const app=await viewer({path:'service.py',content:'def run():\n    storage.save()\n'});
+ assert.match(app.get('detail').innerHTML,/Syntax coverage · targets not resolved/);
+ assert.match(app.get('detail').innerHTML,/storage.save/);
+ assert.match(app.get('detail').innerHTML,/syntax-only-no-resolution/);
+ assert.match(app.get('detail').innerHTML,/2 visible nodes · 1 edges/);
+ assert.doesNotMatch(app.get('detail').innerHTML,/data-mode="recommended"/);
+ assert.match(app.get('detail').innerHTML,/Target \(not resolved by this analysis\)/);
+ assert.doesNotMatch(app.get('detail').innerHTML,/Compiler binding:/);
+});
+test('JSON property structure is navigable in the maintained viewer', async () => {
+ const app=await viewer({path:'settings.json',content:'{"service":{"url":"./api"}}'});
+ assert.match(app.get('detail').innerHTML,/Declarations/);
+ assert.match(app.get('detail').innerHTML,/>service<\/a>/);
+ assert.match(app.get('detail').innerHTML,/>url<\/a>/);
+ assert.match(app.get('detail').innerHTML,/values are not interpreted as paths/);
+ assert.match(app.get('detail').innerHTML,/Structure coverage/);
+ assert.doesNotMatch(app.get('detail').innerHTML,/Repository imports & module occurrences/);
 });

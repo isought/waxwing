@@ -68,6 +68,6 @@ export function validateSourceSnapshot(snapshot) {
     skipped: snapshot.files.filter(f => f.status === 'skipped').length, declarations: snapshot.declarations.length,
     references: snapshot.references.length, unresolved: snapshot.references.filter(r => r.resolution.status === 'unresolved').length,
     ambiguous: snapshot.references.filter(r => r.resolution.status === 'ambiguous').length,
-    syntaxErrors: snapshot.diagnostics.filter(d => d.code.startsWith('typescript/')).length,
+    syntaxErrors: snapshot.diagnostics.filter(d => d.code.startsWith('typescript/') || d.code === 'tree-sitter/syntax').length,
   } };
 }

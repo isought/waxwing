@@ -1966,7 +1966,8 @@ which claims are still accurate. See the workspace guide for the complete workfl
 ## Source scanning preview
 
 This development branch additionally provides `scan`, `scan-check` and
-`scan-query` for JavaScript/TypeScript. Use the installed adapter's `guide scanning`
+`scan-query` with compiler bindings for JavaScript/TypeScript and baseline
+Tree-sitter syntax for additional languages. Use the installed adapter's `guide scanning`
 or the [scanner guide](docs/source-scanning.md) for commands, the source schema,
 library APIs and precise coverage limits. Scans produce separate source snapshots;
 they do not replace architecture/sequence authoring or prove architectural claims.
@@ -1976,7 +1977,8 @@ Inspect skipped files, parse diagnostics and unresolved/ambiguous references
 before interpreting results. A resolved target is a static binding within the
 recorded compiler configuration, not evidence of runtime execution. Prefer explicit
 evidence and human explanations for terms, intended boundaries, goals and assumptions.
-Other language adapters, including Lean 4, remain initial release work.
+Inspect per-file `analysis` capabilities: syntax-only call/import targets are
+unresolved observations. Lean 4 and full Objective-C++ remain release work.
 
 The preview also includes `scan-view` for a standalone source graph and
 `build-connected` for optional system-to-source navigation with recorded rationale

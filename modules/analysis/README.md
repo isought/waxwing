@@ -1,15 +1,15 @@
 # Source analysis boundary
 
-This directory implements the first JavaScript/TypeScript scanner slice.
-`index.mjs` accepts supplied source strings; `javascript.mjs` uses the pinned
-TypeScript compiler through a closed in-memory host. `languages.mjs` distinguishes
-recognized extensions from actually supported adapters. See the
-[scanner guide](../../docs/source-scanning.md) for the working APIs and limits.
+`index.mjs` routes supplied source strings through the tested language registry.
+`javascript.mjs` uses the pinned TypeScript compiler with a closed in-memory host.
+`tree-sitter.mjs` shares parsing/traversal/records across grammar-specific rules in
+`tree-sitter-profiles.mjs`. Each analyzed file records its backend and capabilities.
+See the [scanner guide](../../docs/source-scanning.md) for the coverage table.
 
 Analysis depends on `knowledge` and remains usable without presentation or a
-conversation. Application workflows coordinate repository discovery and output;
-interfaces expose those workflows. The remaining language/proof adapters are
-planned, not implemented by extension recognition.
+conversation. Application APIs own repository discovery; analysis reads only
+supplied source strings and its installed parser assets. Unknown languages stay
+skipped. A grammar being installed does not enable a profile automatically.
 
 Before adding further adapters, extend concrete fixtures for snapshot identity,
 declarations, reference occurrences, resolution results and coverage. Syntax
@@ -22,8 +22,8 @@ Code and proof records use specialized contracts. Their mappings to
 architectural explanations must be explicit and may be many to many. Code
 identity must survive changes to display labels and reading views; identity
 across source revisions needs an explicit matching/review policy. The current
-source draft binds occurrence IDs to file digests/ranges. Architecture evidence
-mappings and cross-revision continuity are not implemented yet.
+source draft binds occurrence IDs to file digests/ranges. Optional architecture evidence mappings exist; cross-revision continuity still
+requires explicit review.
 
 ## Initial targets
 

@@ -6,6 +6,8 @@
   const main = document.getElementById('detail'), nav = document.getElementById('navigation');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const callable = d => ['function', 'method'].includes(d.kind);
+  const syntaxOnly = record => files.get(record?.fileRef ?? record?.id)?.analysis?.level === 'syntax';
+  const browseable = d => callable(d) || d.kind === 'class' || syntaxOnly(d);
   const module = r => ['import', 're-export', 'dynamic-import', 'require'].includes(r.kind);
   const link = (id, label) => `<a href="#${esc(id)}">${esc(label ?? records.get(id)?.name ?? records.get(id)?.path ?? id)}</a>`;
   const location = r => {
@@ -93,17 +95,18 @@
   }
   const rows = relationships => relationships.map(({ reference: r, callerRef, provenance }) => `<article class="relationship">
     <div><strong>${link(r.id, r.name)}</strong> <span class="tag">${esc(r.kind)}</span> <small>in ${link(callerRef)}</small></div>
-    <p>${module(r) ? 'Module target' : 'Compiler binding'}: ${targets(r.resolution)}</p><p class="muted">${qualify(r.resolution)}</p>
+    <p>${syntaxOnly(r) ? 'Target (not resolved by this analysis)' : module(r) ? 'Module target' : 'Compiler binding'}: ${targets(r.resolution)}</p><p class="muted">${qualify(r.resolution)}</p>
     ${provenance.map(p => `<div class="provenance"><strong>Static value provenance</strong> via ${link(p.bindingRef)}<p>Export ${esc(p.importedName ?? '(unsupported pattern)')}: ${targets(p.resolution)}</p><p>${qualify(p.resolution)} · ${link(p.moduleRef, 'Import evidence')}</p><small>Exported declaration origin; runtime dispatch is not established.</small></div>`).join('')}${evidence(r)}</article>`).join('');
 
   function section(title, items) {
+    if (!items.length && syntaxOnly(records.get(locationHash()))) return '';
     const id = `list-${section.next++}`;
     section.pending.push({ id, items });
     return `<section><h2>${esc(title)} <span class="count">${items.length}</span></h2><div id="${id}">${items.length ? rows(items.slice(0, 30)) : '<p class="muted">No recorded relationships in this view.</p>'}</div>${items.length > 30 ? `<button data-more="${id}">Show ${Math.min(30, items.length - 30)} more (${items.length - 30} remaining)</button>` : ''}</section>`;
   }
   function functions(file) {
-    const items = data.declarations.filter(d => d.fileRef === file.id && (callable(d) || d.kind === 'class'));
-    return `<section><h2>Functions & classes <span class="count">${items.length}</span></h2><div class="function-list">${items.map(d => `<div>${link(d.id)} <small>${esc(d.kind)} · line ${d.span.start.line}</small></div>`).join('') || '<p class="muted">No named functions or classes recorded.</p>'}</div></section>`;
+    const items = data.declarations.filter(d => d.fileRef === file.id && browseable(d));
+    return `<section><h2>${syntaxOnly(file) ? 'Declarations' : 'Functions & classes'} <span class="count">${items.length}</span></h2><div class="function-list">${items.map(d => `<div>${link(d.id)} <small>${esc(d.kind)} · line ${d.span.start.line}</small></div>`).join('') || '<p class="muted">No supported named declarations recorded.</p>'}</div></section>`;
   }
   function sourceSources(refs, sources) {
     return (refs ?? []).map(id => {
@@ -134,10 +137,10 @@
     return parts.length ? parts : [''];
   }
   function graph(record) {
-    const recommended = callable(record) && graphMode === 'recommended';
+    const recommended = callable(record) && !syntaxOnly(record) && graphMode === 'recommended';
     const visitedRefs = callable(record) ? reading(record.id).edges.filter(e => trail.some(t => t.id !== record.id && [e.from, e.to].includes(t.id))).flatMap(e => e.occurrences) : [];
     const model = recommended ? recommendedGraph(record) : sourceNeighborhood(data, record.id, { limit: graphLimit, preferredReferenceRefs: [...(context?.evidenceRefs ?? []), ...visitedRefs] });
-    if (!model.nodes.length) return '';
+    if (!model.nodes.length || syntaxOnly(record) && !model.totalRelationships) return '';
     const columns = ['caller', 'focus', 'target', 'origin'].filter(role => model.nodes.some(node => node.role === role));
     const counts = columns.map(role => model.nodes.filter(node => node.role === role).length);
     const narrow = window.matchMedia?.('(max-width:600px)').matches;
@@ -157,7 +160,7 @@
       }
       height = cursor;
     }
-    const captions = { caller: 'Incoming caller', focus: files.has(model.focusRef) ? 'Selected file' : 'Selected callable / binding', target: recommended ? 'Calls internally' : 'Static binding / boundary', origin: 'Exported value origin' };
+    const captions = { caller: 'Incoming caller', focus: files.has(model.focusRef) ? 'Selected file' : 'Selected callable / binding', target: syntaxOnly(record) ? 'Observed calls / imports' : recommended ? 'Calls internally' : 'Static binding / boundary', origin: 'Exported value origin' };
     const edgeMarkup = model.edges.map((edge, index) => {
       const from = positions.get(edge.from), to = positions.get(edge.to);
       const forward = to.x > from.x, startX = from.x + (forward ? 228 : 0), endX = to.x + (forward ? 0 : 228);
@@ -169,7 +172,7 @@
       const skipsColumn = Math.abs(to.x - from.x) > 282;
       const gutter = 38 + (index % 3) * 4, departure = startX + (forward ? 12 : -12), arrival = endX + (forward ? -12 : 12);
       const path = narrow ? `M ${from.x} ${from.y + 40} L ${18 + index % 4 * 5} ${from.y + 40} L ${18 + index % 4 * 5} ${to.y + (same ? 62 : 40)} L ${to.x} ${to.y + (same ? 62 : 40)}` : same ? `M ${from.x + 170} ${from.y} C ${from.x + 280} ${from.y - 42}, ${from.x + 280} ${from.y + 90}, ${from.x + 228} ${from.y + 56}` : skipsColumn ? `M ${startX} ${y1} L ${departure} ${y1} L ${departure} ${gutter} L ${arrival} ${gutter} L ${arrival} ${y2} L ${endX} ${y2}` : `M ${startX} ${y1} C ${(startX + endX) / 2} ${y1}, ${(startX + endX) / 2} ${y2}, ${endX} ${y2}`;
-      const label = edge.kind === 'provenance' ? 'value origin' : edge.kind === 'module' ? 'module' : 'binding';
+      const label = syntaxOnly(record) ? 'syntax occurrence' : edge.kind === 'provenance' ? 'value origin' : edge.kind === 'module' ? 'module' : 'binding';
       const title = `${label} · ${edge.status} · ${edge.reason}. Inspect ${records.get(edge.referenceRef)?.name ?? 'source occurrence'}`;
       const evidenceIndex = selectedEdges.push(edge.referenceRefs ?? [edge.referenceRef]) - 1;
       const count = edge.referenceRefs?.length ?? 1;
@@ -181,7 +184,7 @@
       return node.recordRef ? `<a href="#${esc(node.recordRef)}" class="graph-node ${node.role}${node.boundary ? ' ' + node.boundary : ''}" aria-label="Focus ${esc(node.label)}">${content}</a>` : `<g class="graph-node ${esc(node.boundary)}">${content}</g>`;
     }).join('');
     const visible = model.totalRelationships - model.omittedRelationships;
-    return `<section class="graph-section"><div class="section-heading"><h2>Source neighborhood</h2>${callable(record) ? `<div class="graph-modes" role="group" aria-label="Graph presentation"><button data-mode="recommended" aria-pressed="${recommended}">Recommended</button><button data-mode="occurrences" aria-pressed="${!recommended}">All occurrences</button></div>` : ''}</div><p class="graph-summary">${model.nodes.length} visible nodes · ${model.edges.length} edges · ${visible} of ${model.totalRelationships} ${recommended ? 'connections' : 'occurrences'}</p><p class="graph-description">${files.has(model.focusRef) ? 'Module references around this file.' : recommended ? 'Internal callable connections, grouped by caller and target. Imported value origins retain their binding evidence.' : 'Direct calls and incoming references around the selected callable or binding.'} Select a node to refocus; select an arrow to inspect its occurrence.</p><div class="graph-frame" data-focus-x="${positions.get(model.focusRef)?.x ?? 0}" tabindex="0" aria-label="Scrollable source graph"><svg class="source-graph${narrow ? ' narrow' : ''}" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="group" aria-label="Static source relationships, not execution order"><defs><marker id="binding-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#647b85"/></marker><marker id="origin-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#328476"/></marker></defs>${columns.map((role, index) => `<text x="${captionPositions.get(role).x}" y="${captionPositions.get(role).y}" class="column-label">${captions[role]}</text>`).join('')}${edgeMarkup}${nodeMarkup}</svg></div><div class="graph-legend"><span><i class="legend-line"></i>Compiler binding / module target</span><span><i class="legend-line origin"></i>Static value origin</span><span><i class="legend-box"></i>Unresolved / external boundary</span></div><p class="muted">Arrows record static relationships. They do not establish runtime dispatch, branch conditions, execution order, or intent.</p>${model.omittedNodes ? `<p class="notice">${model.omittedNodes} additional targets are outside this graph's node limit. Inspect occurrence details for all candidates.</p>` : ''}${model.omittedRelationships ? `<p class="notice">${model.omittedRelationships} additional ${recommended ? 'connections' : 'occurrences'} are outside this graph. The relationship lists below retain them.</p>${graphLimit < 40 ? '<button id="expand-graph">Show more connections</button>' : ''}` : ''}${callable(record) ? otherCalls(record) : ''}<div id="connection-evidence" tabindex="-1" aria-live="polite"></div></section>`;
+    return `<section class="graph-section"><div class="section-heading"><h2>Source neighborhood</h2>${callable(record) && !syntaxOnly(record) ? `<div class="graph-modes" role="group" aria-label="Graph presentation"><button data-mode="recommended" aria-pressed="${recommended}">Recommended</button><button data-mode="occurrences" aria-pressed="${!recommended}">All occurrences</button></div>` : ''}</div><p class="graph-summary">${model.nodes.length} visible nodes · ${model.edges.length} edges · ${visible} of ${model.totalRelationships} ${recommended ? 'connections' : 'occurrences'}</p><p class="graph-description">${files.has(model.focusRef) ? 'Module references around this file.' : recommended ? 'Internal callable connections, grouped by caller and target. Imported value origins retain their binding evidence.' : 'Direct calls and incoming references around the selected callable or binding.'} Select a node to refocus; select an arrow to inspect its occurrence.</p><div class="graph-frame" data-focus-x="${positions.get(model.focusRef)?.x ?? 0}" tabindex="0" aria-label="Scrollable source graph"><svg class="source-graph${narrow ? ' narrow' : ''}" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="group" aria-label="Static source relationships, not execution order"><defs><marker id="binding-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#647b85"/></marker><marker id="origin-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="#328476"/></marker></defs>${columns.map((role, index) => `<text x="${captionPositions.get(role).x}" y="${captionPositions.get(role).y}" class="column-label">${captions[role]}</text>`).join('')}${edgeMarkup}${nodeMarkup}</svg></div><div class="graph-legend"><span><i class="legend-line"></i>${syntaxOnly(record) ? 'Observed syntax; target unresolved' : 'Compiler binding / module target'}</span><span><i class="legend-line origin"></i>Static value origin</span><span><i class="legend-box"></i>Unresolved / external boundary</span></div><p class="muted">Arrows record static relationships. They do not establish runtime dispatch, branch conditions, execution order, or intent.</p>${model.omittedNodes ? `<p class="notice">${model.omittedNodes} additional targets are outside this graph's node limit. Inspect occurrence details for all candidates.</p>` : ''}${model.omittedRelationships ? `<p class="notice">${model.omittedRelationships} additional ${recommended ? 'connections' : 'occurrences'} are outside this graph. The relationship lists below retain them.</p>${graphLimit < 40 ? '<button id="expand-graph">Show more connections</button>' : ''}` : ''}${callable(record) ? otherCalls(record) : ''}<div id="connection-evidence" tabindex="-1" aria-live="polite"></div></section>`;
   }
   function diagnosticList(items) {
     return items.map(item => `<p><span class="tag">${esc(item.code ?? 'notice')}</span> ${esc(item.message ?? item.reason ?? String(item))}</p>`).join('');
@@ -207,11 +210,15 @@
       const incoming = data.relationships.filter(r => r.reference.resolution.targets.includes(id) || r.provenance.some(p => p.resolution.targets.includes(id)));
       const p = record.valueProvenance;
       content += `<p class="record-trail">${link(selected.id, selected.path)}</p><div class="record-heading"><h1>${esc(record.name)}</h1><span class="tag">${esc(record.kind)}</span></div><details class="record-metadata"><summary>Lines ${record.span.start.line}–${record.span.end.line} · Source metadata</summary><p>${esc(location(record))}</p><p>Lexical container: ${link(record.containerRef)}</p></details>` + graph(record) +
-        (p ? `<section><h2>Static value provenance</h2><p>Export ${esc(p.importedName ?? '(unsupported pattern)')} from ${link(p.moduleRef, 'await import occurrence')}</p><p>${targets(p.resolution)}</p><p>${qualify(p.resolution)}</p></section>` : '') + `<details class="function-source"><summary>Read function source</summary>${evidence(record, true)}</details><details class="all-evidence"><summary>All source occurrences & bindings</summary>` +
+        (p ? `<section><h2>Static value provenance</h2><p>Export ${esc(p.importedName ?? '(unsupported pattern)')} from ${link(p.moduleRef, 'await import occurrence')}</p><p>${targets(p.resolution)}</p><p>${qualify(p.resolution)}</p></section>` : '') + `<details class="function-source"><summary>${callable(record) ? 'Read function source' : 'Read declaration source'}</summary>${evidence(record, true)}</details><details class="all-evidence"><summary>All source occurrences & bindings</summary>` +
         section('Outgoing calls (nearest named callable)', data.relationships.filter(r => r.callerRef === id && !module(r.reference))) + section('Incoming calls & module relationships', incoming) + '</details>';
     } else {
       const rel = data.relationships.find(r => r.reference.id === id);
       content += `<p class="record-trail">${link(selected.id, selected.path)}</p><div class="record-heading"><h1>${esc(record.name)}</h1><span class="tag">${esc(record.kind)}</span></div><details class="record-metadata"><summary>Lines ${record.span.start.line}–${record.span.end.line} · Source metadata</summary><p>${esc(location(record))}</p></details>` + graph(record) + evidence(record, true) + (rel ? rows([rel]) : `<section><h2>Compiler binding</h2><p>${targets(record.resolution)}</p><p>${qualify(record.resolution)}</p></section>`);
+    }
+    if (selected?.analysis) {
+      const analysis = selected.analysis;
+      content = `<aside class="notice" aria-label="Analysis coverage"><strong>${analysis.level === 'syntax' ? analysis.capabilities.some(c => ['call-occurrences', 'module-occurrences'].includes(c)) ? 'Syntax coverage · targets not resolved' : 'Structure coverage · declarations and nesting' : 'Compiler binding analysis'}</strong><p>${esc(selected.language)}${selected.language === 'objective-c++' ? ' · Partial: Objective-C syntax only; C++ is not reliably covered.' : ''}</p><details><summary>Analysis details and limits</summary><p>${esc(analysis.backend)} ${esc(analysis.version)}${analysis.grammar ? ' · ' + esc(analysis.grammar) : ''}</p>${analysis.limitations.map(text => `<p>${esc(text)}</p>`).join('')}</details></aside>` + content;
     }
     if (selected) {
       const diagnostics = data.diagnostics.filter(d => d.fileRef === selected.id);
@@ -250,8 +257,8 @@
     const text = document.getElementById('search').value.toLowerCase();
     const includeSkipped = document.getElementById('show-skipped').checked;
     const matches = data.files.filter(f => (includeSkipped || f.status === 'analyzed') && f.path.toLowerCase().includes(text));
-    const named = text ? data.declarations.filter(d => callable(d) && d.name.toLowerCase().includes(text)) : [];
-    nav.innerHTML = `<p class="muted">${matches.length} files${text ? ` · ${named.length} functions` : ''}</p>` + matches.map(f => `<div class="nav-item">${link(f.id, f.path)}${f.status === 'skipped' ? '<small>skipped</small>' : ''}</div>`).join('') + named.map(d => `<div class="nav-item">${link(d.id)}<small>${esc(location(d))}</small></div>`).join('');
+    const named = text ? data.declarations.filter(d => browseable(d) && d.name.toLowerCase().includes(text)) : [];
+    nav.innerHTML = `<p class="muted">${matches.length} files${text ? ` · ${named.length} declarations` : ''}</p>` + matches.map(f => `<div class="nav-item">${link(f.id, f.path)}${f.status === 'skipped' ? '<small>skipped</small>' : ''}</div>`).join('') + named.map(d => `<div class="nav-item">${link(d.id)}<small>${esc(location(d))}</small></div>`).join('');
   }
   const fileBrowser = document.getElementById('file-browser');
   const narrowScreen = window.matchMedia?.('(max-width:1000px)');

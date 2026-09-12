@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { SOURCE_VERSION, sourceFileId, sourceSnapshotId, validSourcePath, validateSourceSnapshot } from '../knowledge/source/model.mjs';
 import { fail } from '../knowledge/shared/model.mjs';
-import { supportedSourceLanguages, sourceLanguage } from './languages.mjs';
-export { supportedSourceLanguages, sourceLanguage } from './languages.mjs';
+import { supportedSourceLanguages, sourceLanguage, sourceLanguageProfiles } from './languages.mjs';
+export { supportedSourceLanguages, sourceLanguage, sourceLanguageProfiles } from './languages.mjs';
 
 export async function analyzeSources(sources, { sourceId = 'repository' } = {}) {
   if (!Array.isArray(sources) || typeof sourceId !== 'string' || !sourceId.trim()) throw new Error('Provide source entries and a nonempty sourceId.');
@@ -19,12 +19,25 @@ export async function analyzeSources(sources, { sourceId = 'repository' } = {}) 
     } else Object.assign(file, { status: 'skipped', reason: 'unsupported-language' });
     files.push(file);
   }
-  const { analyzeJavaScript, producer } = await import('./javascript.mjs');
-  const records = analyzeJavaScript(inputs);
+  const records = { declarations: [], references: [], diagnostics: [] };
+  const compilerInputs = inputs.filter(input => sourceLanguageProfiles[input.file.language].backend === 'typescript');
+  const syntaxInputs = inputs.filter(input => sourceLanguageProfiles[input.file.language].backend === 'tree-sitter');
+  const producer = { name: 'waxwing-hybrid', version: '0.3.0', adapterVersion: '0.3.0', configuration: 'TypeScript 6.0.3 closed-snapshot bindings; web-tree-sitter 0.27.0 with tree-sitter-wasm 2.0.1 syntax profiles. Per-file capabilities and grammar identity are recorded.' };
+  if (compilerInputs.length) {
+    const { analyzeJavaScript, producer: compiler } = await import('./javascript.mjs');
+    const result = analyzeJavaScript(compilerInputs);
+    for (const { file } of compilerInputs) file.analysis = { backend: 'typescript', version: compiler.version, level: 'bindings', capabilities: ['declarations', 'containment', 'call-occurrences', 'module-occurrences', 'binding-resolution', 'import-value-provenance'], limitations: [compiler.configuration] };
+    for (const key of Object.keys(records)) records[key].push(...result[key]);
+  }
+  if (syntaxInputs.length) {
+    const { analyzeTreeSitter } = await import('./tree-sitter.mjs');
+    const result = await analyzeTreeSitter(syntaxInputs);
+    for (const key of Object.keys(records)) records[key].push(...result[key]);
+  }
   const snapshot = { schemaVersion: SOURCE_VERSION, source: { id: sourceId }, producer,
     coverage: { discovery: 'provided-inputs', discoveryComplete: true, excludedDirectories: [], limits: {} },
     files, ...records, limitations: [
-      'JavaScript and TypeScript only. Named declarations and identifier/module occurrences are indexed; anonymous callables and computed/string member references are not fully indexed.',
+      'JavaScript/TypeScript use compiler bindings; other enabled languages use selected Tree-sitter syntax profiles without target resolution. Per-file analysis records the actual capabilities and limitations. Named declarations and identifier/module occurrences are indexed; anonymous callables and computed/string member references are not fully indexed.',
       'Bindings treat every file as a module in a closed snapshot with bundler module resolution. Project tsconfig, package manifests, external packages and standard libraries are not loaded; type-checking, build execution and runtime verification are not run.',
       'Static value provenance is limited to immutable simple destructuring of awaited literal imports. It locates exported declarations, not guaranteed runtime values. Mutable bindings/exports, writes and unsupported patterns stay unresolved; general alias/data-flow analysis is absent.',
       'Call records describe syntax and compiler bindings, not execution, control flow, dispatch certainty, architectural intent or a complete call graph.',
