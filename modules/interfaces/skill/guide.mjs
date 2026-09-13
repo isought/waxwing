@@ -13,7 +13,7 @@ const topics={
   'example-scenario':['Complete sequence scenario example'],
   'example-behavior':['Complete sequence behavior example'],
 };
-const topicDocs = { collections: 'collections.md', queries: 'model-queries.md', workspace: 'workspace.md', scanning: 'source-scanning.md' };
+const topicDocs = { collections: 'collections.md', queries: 'model-queries.md', workspace: 'workspace.md', scanning: 'source-scanning.md', 'agent-entry': 'agent-entry.md' };
 
 export function guideSections(guide) {
   const sections=new Map();let heading,body=[],fence;
@@ -40,5 +40,5 @@ export function readGuide(root,topic) {
   if(topic==='list')return JSON.stringify([...contents].map(([name,text])=>({topic:name,characters:text.length})),null,2);
   if(!contents.has(topic))throw new Error(`Unknown guide topic "${topic}". Use guide list.`);
   const version=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
-  return `Waxwing ${version} · ${topic}\nSource: ${path.join(root,Object.hasOwn(topicDocs,topic)?`docs/${topicDocs[topic]}`:'AGENT_GUIDE.md')}\nUse the installed skill adapter for the CLI examples below; relative documentation links resolve from the source above.\n\n${contents.get(topic)}`;
+  return `Waxwing ${version} · ${topic}\nSource: ${path.join(root,Object.hasOwn(topicDocs,topic)?`docs/${topicDocs[topic]}`:'AGENT_GUIDE.md')}\nRun the CLI examples below with the waxwing command or the installed skill adapter; relative documentation links resolve from the source above.\n\n${contents.get(topic)}`;
 }

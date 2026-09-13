@@ -1,6 +1,6 @@
 ---
 name: waxwing
-description: Create or update evidence-backed Waxwing architecture and sequence diagrams from repositories, documents, or an existing model, then validate and build inspectable artifacts. Use for system explanations and interaction scenarios, including collections of separate models.
+description: Investigate repository behavior and system flow using available Waxwing project knowledge, with bounded context and verifiable evidence. Also create or update evidence-backed Waxwing architecture and sequence diagrams from repositories, documents, or an existing model, then validate and build inspectable artifacts, including collections of separate models.
 ---
 
 # Waxwing explanations
@@ -39,6 +39,7 @@ Load `basics`, then only the relevant topics:
 | Several independent models under one home page | `collections` |
 | Consult existing knowledge in bounded pieces | `queries` |
 | Locate evidence and related models across folders, repositories, or hosted documents | `workspace` |
+| Context/read statuses, budgets, discovery and project setup | `agent-entry` |
 
 `guide list` shows the topics and their sizes. These excerpts come directly from
 the bound package's complete guide/docs, so schema details are not maintained
@@ -46,6 +47,9 @@ twice. Example systems are fictional; use their field shapes, not their facts.
 
 ## Choose the workflow
 
+- For a question about why or how the repository behaves, read
+  [references/investigate.md](references/investigate.md). Start with one bounded
+  `context` lookup; an investigation does not require creating a diagram.
 - For a new explanation, read [references/create.md](references/create.md).
 - For changes to an existing model or artifact, read
   [references/update.md](references/update.md).

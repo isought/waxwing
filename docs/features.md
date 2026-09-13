@@ -254,6 +254,9 @@ connectivity view. This is a presentation preference; all operation arrows and
 source claims remain intact. See [reading anchors](reading-anchors.md) and
 the [before/after experiment](../experiments/reading-anchor/README.md).
 
+Agent-facing setup and retrieval (`init`, `doctor`, `detach`, `discover`,
+`context`, `read`) are described in [agent entry](agent-entry.md).
+
 ## What is preserved
 
 JSON 1 holds system facts, qualified interpretations, provenance references,

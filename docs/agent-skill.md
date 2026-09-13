@@ -7,6 +7,10 @@ access and reasoning. Installing it does not add a scanner or call an LLM.
 
 ## Install explicitly
 
+For a committed, project-scoped setup that invokes `waxwing` on PATH, use
+[`waxwing init`](agent-entry.md) instead. The explicit installation below binds
+one personal skill directory to one package location.
+
 With a Waxwing version that provides `skill install`:
 
 ```sh

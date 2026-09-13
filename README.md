@@ -123,6 +123,23 @@ It reports unresolved bindings and skipped files. Source snapshots remain
 separate from authored architecture models. Other language adapters, including
 Lean 4, are still planned; this preview is not in the published `0.2.0` release.
 
+### Development preview: use project knowledge from your agent
+
+Register Waxwing with the agent you already use, then let it ask bounded questions
+against the models, source snapshots and sites the repository already has:
+
+```sh
+node bin/waxwing.mjs init --agent codex --agent claude
+node bin/waxwing.mjs doctor --format json
+node bin/waxwing.mjs context --question "Why does this API return pending?" --clue CheckoutService
+```
+
+`init` adds a short marked instruction block and a portable project skill, and
+`detach` removes them again without touching unrelated text. `context` returns
+lexical candidates with their match basis; `read` returns records, related
+references, existing view links and hash-verified source excerpts. Nothing calls
+an LLM or proves an explanation. See [agent entry](docs/agent-entry.md).
+
 ### Work on Waxwing
 
 From a source checkout:

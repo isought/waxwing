@@ -144,6 +144,7 @@ modules/
     workflow/      Architecture participation and interaction validation
     documents/     Markdown parsing, resolved links and asset validation
     query/         Bounded retrieval of recorded knowledge
+    context/       Agent context protocol: references, byte budgets and clue matching
     records/       In-memory model update inventories
     workspace/     Manifest validation and potential review scope
     source/        Source snapshot validation, identity and bounded queries
@@ -159,8 +160,10 @@ modules/
     workspace/     Markdown review reports
     shared/        Display text and drawing metrics
   application/     File loading, build/render/recover workflows, site writes,
-                   collection builds and update review coordination
-  interfaces/      CLI arguments/results and skill installation/guide access
+                   collection builds, update review coordination, and
+                   project discovery/context/read orchestration
+  interfaces/      CLI arguments/results, skill installation/guide access,
+                   and agent host setup (init, doctor, detach)
   analysis/        JS/TS source extraction and static binding; compiler loaded lazily
   model/, ...      Existing module paths retained as compatibility entry points
 schemas/       JSON 1 and JSON 2 contracts

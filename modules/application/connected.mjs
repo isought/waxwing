@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import { loadModel } from './load-model.mjs';
 import { loadSourceSnapshot } from './scan.mjs';
+import { readVerifiedSourceText } from './source-text.mjs';
 import { validateSourceSnapshot } from '../knowledge/source/model.mjs';
 import { fail } from '../knowledge/shared/model.mjs';
 
@@ -24,24 +24,7 @@ export function captureSourceTexts(snapshot, directory) {
     // Include even missing input paths in overwrite protection.
     inputFiles.push(filename);
     try {
-      let current = root;
-      for (const part of file.path.split('/')) {
-        current = path.join(current, part);
-        if (fs.lstatSync(current).isSymbolicLink()) throw new Error('symlink');
-      }
-      if (!fs.lstatSync(filename).isFile()) throw new Error('not-regular-file');
-      const fd = fs.openSync(filename, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0) | (fs.constants.O_NONBLOCK ?? 0));
-      let bytes;
-      try {
-        const stat = fs.fstatSync(fd);
-        if (!stat.isFile()) throw new Error('not-regular-file');
-        if (stat.size !== file.byteLength) throw new Error('changed-bytes');
-        bytes = fs.readFileSync(fd);
-      } finally { fs.closeSync(fd); }
-      if (createHash('sha256').update(bytes).digest('hex') !== file.contentDigest) throw new Error('changed-bytes');
-      const text = new TextDecoder('utf-8', {fatal:true,ignoreBOM:true}).decode(bytes);
-      if (text.length !== file.textLength) throw new Error('changed-text-length');
-      sourceTexts[file.id] = text;
+      sourceTexts[file.id] = readVerifiedSourceText(root, file);
     } catch (error) {
       diagnostics.push({code:'source-text/unavailable',fileRef:file.id,message:`Source excerpt unavailable for ${file.path}: ${error.code ?? error.message}. The recorded scan remains unchanged.`});
     }
