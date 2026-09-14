@@ -78,8 +78,8 @@ For repeating/branching behavior, also establish:
   another branch merely because their participants match.
 
 Do not invent acknowledgments, replies, waits, blocking, deduplication, or
-downstream outcomes. The behavior renderer supports sequential collection loops
-and nested binary if/else. Concurrency, while/until loops, breaks, exceptions,
+downstream outcomes. The behavior renderer supports sequential or concurrent collection loops
+and nested binary if/else. Concurrent steps within a single body, while/until loops, breaks, exceptions,
 early returns, and cross-iteration reply associations are unsupported. Record
 such needs and their consequences in scope/notes/documents; do not disguise them
 as supported behavior or assert an unconditional successful continuation.
@@ -136,7 +136,9 @@ Containers are acyclic; repeating execution is expressed by a loop block.
 
 Loop fields are `collection` (qualified text), `item` (local label), `execution`
 (qualified sequential/concurrent), `iterationOrder` (qualified text), and
-`body`. Only asserted sequential execution is drawable. An unknown visitation
+`body`. Asserted sequential or concurrent execution is drawable. A concurrent
+loop shows one iteration's ordered body and states that iterations may overlap;
+do not infer simultaneous starts, worker counts, or a join policy. An unknown visitation
 order is different from unknown execution mode and can be shown explicitly.
 
 If blocks have `condition` (qualified predicate text), `then`, and required

@@ -10,6 +10,7 @@ export function blockLines(block, width, model = {}) {
     `LOOP · ${block.label} [${block.assertion.status}]`,
     `For each ${block.item} in ${qualified(block.collection)}`,
     `Execution: ${qualified(block.execution)}`,
+    ...(block.execution.value === 'concurrent' ? ['One iteration shown; iterations may overlap.'] : []),
     `Iteration order: ${qualified(block.iterationOrder)}`,
   ] : [`IF / ELSE · ${block.label} [${block.assertion.status}]`, `Condition: ${qualified(block.condition)}`];
   return [...entryCue(model, block.id), ...text].flatMap((line) => wrap(line, Math.max(8, Math.floor((width - 24) / 7.2))));

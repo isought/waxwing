@@ -12,6 +12,8 @@ import { layoutSequence } from '../modules/sequence/index.mjs';
 import { renderHTML, renderSVG } from '../modules/render/index.mjs';
 import { recoverArtifact } from '../modules/render/artifacts.mjs';
 import { digest } from '../modules/shared/model.mjs';
+import { drawableDiagnostics } from '../modules/presentation/sequence/drawable.mjs';
+import { blockLines } from '../modules/presentation/sequence/frames.mjs';
 
 const dir = new URL('../examples/sequence-markets/', import.meta.url);
 const model = loadModel(new URL('model.json', dir)).model;
@@ -96,10 +98,50 @@ test('unresolved body order stays valid JSON 1 but rendering cannot silently pic
   assert.equal(validateModel(m).ok, true); assert.throws(() => layoutSequence(m), /unresolved/);
 });
 
-test('reported control structure remains qualified; unsupported loop execution is never relabeled sequential', () => {
+test('CLI builds concurrent fanout with one body per item and recoverable source', () => {
+  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'waxwing-fanout-'));
+  try {
+    const m = copy(); loop(m).execution = known('concurrent');
+    loop(m).collection = known('basket of 10 items');
+    fs.writeFileSync(path.join(folder, 'model.json'), JSON.stringify(m));
+    fs.copyFileSync(new URL('reading.md', dir), path.join(folder, 'reading.md'));
+    const cli = new URL('../bin/waxwing.mjs', import.meta.url).pathname;
+    const run = (...args) => spawnSync(process.execPath, [cli, ...args], { cwd: folder, encoding: 'utf8' });
+    assert.equal(run('validate', 'model.json').status, 0);
+    const built = run('build', 'model.json', 'out');
+    assert.equal(built.status, 0, built.stderr);
+    const drawing = JSON.parse(fs.readFileSync(path.join(folder, 'out/layout.json'), 'utf8'));
+    assert.equal(validateLayout(drawing, { expectedModel: m }).ok, true);
+    assert.equal(drawing.steps.length, m.steps.length);
+    for (const skin of ['standard', 'engineering', 'editorial']) {
+      for (const artifact of [renderSVG(drawing, { skin }), renderHTML(drawing, { skin })]) {
+        assert.match(artifact, /Execution: concurrent/);
+        assert.match(artifact, /One iteration shown; iterations may overlap/);
+        assert.deepEqual(recoverArtifact(artifact), m);
+      }
+    }
+  } finally { fs.rmSync(folder, { recursive: true, force: true }); }
+});
+
+test('concurrent iteration accepts each asserted qualification and retains per-iteration ordering', () => {
+  for (const status of ['established', 'reported', 'inferred']) {
+    const m = copy(); loop(m).execution = { ...known('concurrent'), status };
+    assert.deepEqual(drawableDiagnostics(m), []);
+    assert.ok(blockLines(loop(m), 1000).includes(`Execution: concurrent [${status}]`));
+    const d = layoutSequence(m);
+    const request = d.steps.find((s) => s.ref === 'request-live');
+    const reply = d.steps.find((s) => s.ref === 'reply-live');
+    assert.ok(reply.label.y > request.points.at(-1).y);
+    reply.label.y = request.label.y;
+    assert.equal(validateLayout(d).ok, false);
+  }
+  assert.ok(!blockLines(loop(model), 1000).some((line) => line.includes('iterations may overlap')));
+});
+
+test('reported control structure remains qualified; unresolved loop execution is never relabeled sequential', () => {
   const qualified = copy(); loop(qualified).assertion.status = 'reported'; loop(qualified).body.status = 'inferred';
   assert.match(renderSVG(layoutSequence(qualified)), /Configured markets \[reported\]/);
-  for (const execution of [known('concurrent'), { status: 'unknown', reason: 'Execution not known.' }, { status: 'disputed', reason: 'Conflicting accounts.', alternatives: [known('sequential'), known('concurrent')] }]) {
+  for (const execution of [{ status: 'unknown', reason: 'Execution not known.' }, { status: 'disputed', reason: 'Conflicting accounts.', alternatives: [known('sequential'), known('concurrent')] }]) {
     const m = copy(); loop(m).execution = execution; assert.equal(validateModel(m).ok, true);
     assert.throws(() => layoutSequence(m), (e) => e.diagnostics.some((d) => d.code === 'sequence/unsupported-iteration'));
   }

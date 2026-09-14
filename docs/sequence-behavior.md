@@ -77,11 +77,15 @@ inferred/unknown/disputed knowledge vocabulary.
 | `assertion` | Qualified boolean assertion of this behavior definition. |
 | `collection` | Qualified text describing the collection being traversed. |
 | `item` | Local name used for the current item, such as `market`. It is a label, not an evaluated variable. |
-| `execution` | Qualified `sequential` or `concurrent`. Only asserted `sequential` is drawable in this version. |
+| `execution` | Qualified `sequential` or `concurrent`. Both are drawable when asserted. |
 | `iterationOrder` | Qualified text describing visitation order, or an explicit unknown/dispute. |
 | `body` | Qualified ordered list of direct step/block IDs; may be empty. |
 
 The modeled body repeats once per item and zero times for an empty collection.
+Concurrent loops display one iteration's ordered body with the cue “One iteration
+shown; iterations may overlap.” For example, a basket of ten items can fan out
+to ten calculations, each following the same body. The frame does not assert
+simultaneous starts, a worker count, or a join policy.
 No fixed count, nonempty guarantee, timing, or concurrency is inferred.
 Sequential means iterations do not overlap at the modeled level; it does not
 tell us which item comes first. An unknown visitation order therefore remains
@@ -167,7 +171,8 @@ unknown mapping.
 | Unknown/disputed predicate, collection, or iteration order | Valid | Drawable with explicit uncertainty. |
 | Unknown/disputed body order | Valid subject to the structure rules above | Blocked; no order is selected. |
 | Unknown/disputed or asserted false step/block assertion | Valid subject to structure | Blocked; no definition is silently removed. |
-| Concurrent, unknown, or disputed loop execution | Valid | Blocked; never relabeled sequential. |
+| Asserted concurrent loop execution | Valid | One iteration shown with an explicit overlap cue; body order is preserved. |
+| Unknown or disputed loop execution | Valid | Blocked; no execution mode is selected. |
 | Invalid containment or incompatible reply path | Invalid when determinable | Blocked. |
 
 ## JSON 2 and rendering

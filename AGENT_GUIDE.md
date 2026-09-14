@@ -531,8 +531,10 @@ A loop block has exactly these required fields:
 The body repeats once per item, zero times for an empty collection. Nothing
 establishes a fixed count or nonempty collection. Sequential execution means
 iterations do not overlap at this abstraction; it does not establish which item
-comes first. Only asserted sequential execution is drawable. Concurrent,
-unknown or disputed execution is valid source but blocks this renderer. Unknown
+comes first. Asserted sequential and concurrent execution are drawable. Concurrent
+loops show one iteration's ordered body, with an explicit cue that iterations may
+overlap; they do not assert simultaneous starts, a worker count, or a join policy.
+Unknown or disputed execution is valid source but blocks this renderer. Unknown
 collection details or visitation order may remain visible and drawable.
 This is collection traversal, not arbitrary `while`, `until` or bounded retries;
 do not invent a collection to encode unsupported loop semantics.

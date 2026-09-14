@@ -8,7 +8,7 @@ export function drawableDiagnostics(model) {
       if (['unknown', 'disputed'].includes(record.assertion.status) || !record.assertion.value) diagnostics.push({ code: 'sequence/unresolved-behavior', path: `/${collection}/${i}/assertion`, message: 'This renderer needs an asserted definition within its enclosing body; it cannot invent missing or disputed behavior.' });
     });
     model.blocks.forEach((block, i) => {
-      if (block.kind === 'loop' && (['unknown', 'disputed'].includes(block.execution.status) || block.execution.value !== 'sequential')) diagnostics.push({ code: 'sequence/unsupported-iteration', path: `/blocks/${i}/execution`, message: 'Only asserted sequential iteration is drawable. Concurrent or unresolved execution must not be relabeled sequential.' });
+      if (block.kind === 'loop' && (['unknown', 'disputed'].includes(block.execution.status) || !['sequential', 'concurrent'].includes(block.execution.value))) diagnostics.push({ code: 'sequence/unsupported-iteration', path: `/blocks/${i}/execution`, message: 'Loop execution must be asserted sequential or concurrent. Unknown or disputed execution cannot be selected for drawing.' });
     });
     return diagnostics;
   }
