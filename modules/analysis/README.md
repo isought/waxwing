@@ -25,13 +25,17 @@ across source revisions needs an explicit matching/review policy. The current
 source draft binds occurrence IDs to file digests/ranges. Optional architecture evidence mappings exist; cross-revision continuity still
 requires explicit review.
 
-## Initial targets
+## Coverage and future targets
 
 - Kotlin and Java.
 - Python, JavaScript, TypeScript and Go.
 - Objective-C and Objective-C++.
 - SQL, JSON and shell scripts.
-- **Lean 4, from the first scanner release.**
+
+The 0.3.0 scanner is experimental. The language groups above have baseline
+profiles with the limits in the scanner guide; Objective-C++ is partial.
+**Lean 4 is deferred beyond 0.3.0.** It needs a dedicated integration and is not
+part of the initial experimental release.
 
 SQL dialects, shell variants and the supported Objective-C++/C++ surface remain
 open scope decisions. Evaluate available parsing and semantic tools against

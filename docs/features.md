@@ -219,7 +219,7 @@ Your own producer
 | `@isought/waxwing/skill` | Install the authoring/update skill in an explicit destination, bound to this runtime and its contract. |
 | `@isought/waxwing/workflow` | Inspect architecture workflow scope, participation, and drawing blockers without loading ELK. |
 | `@isought/waxwing/sequence` | Independently validate, lay out, and render a sequence scenario or structured behavior. |
-| `@isought/waxwing/analysis` | Analyze supplied JS/TS source strings into a source snapshot (development preview). |
+| `@isought/waxwing/analysis` | Analyze supplied source strings using JS/TS compiler bindings or supported Tree-sitter syntax profiles (experimental). |
 | `@isought/waxwing/scan` | Discover local repository files and write/load source snapshots. |
 | `@isought/waxwing/source` | Validate, query and project source navigation without loading the compiler. |
 | `@isought/waxwing/source-view` | Render standalone source-specific file/function navigation HTML. |
@@ -286,10 +286,11 @@ has not edited an exported SVG's visible markup.
 
 ## Development and documents
 
-[Release notes](../CHANGELOG.md) describe the 0.2.0 release.
+[Release notes](../CHANGELOG.md) describe published releases, including 0.3.0.
 [Upgrade and migration instructions](migrations.md) explain when to
 re-render, rebuild, or recover an existing spec. Software releases and schema
-versions are tracked separately; software 0.2.0 uses experimental draft formats.
+versions are tracked separately; 0.3.0 preserves existing model schemas and adds
+the separate experimental `0.1-source-draft` snapshot format.
 
 ```sh
 npm test

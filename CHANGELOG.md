@@ -2,10 +2,30 @@
 
 Software versions and experimental schema versions are tracked separately.
 
-## Unreleased
+## 0.3.0 — 2026-09-14
 
+Source scanning and connected source exploration are experimental.
+
+- Add source scanning with `scan`, `scan-check`, and `scan-query`, producing
+  separate `0.1-source-draft` snapshots with file hashes, source ranges,
+  declarations, imports, references, and explicit coverage diagnostics.
+- Resolve JavaScript/TypeScript static bindings with the TypeScript compiler.
+  Add Tree-sitter syntax profiles for Python, Java, Kotlin, Go, Objective-C,
+  C/C++, C#, Rust, Ruby, Swift, SQL, JSON, and shell. Syntax-only targets remain
+  unresolved; Lean 4 is deferred and Objective-C++ coverage is partial.
+- Add `scan-view` for standalone source exploration with search, navigation,
+  reference graphs, and browser history. Add `build-connected` for optional
+  architecture-to-source links with qualified rationale and verified excerpts.
+- Expose experimental `analysis`, `source`, `scan`, `source-view`, `connected`,
+  and `source-links` module entry points. Add TypeScript and Tree-sitter runtime
+  dependencies; parser assets stay local and are not embedded in generated sites.
+- Separate knowledge, analysis, presentation, application, and interface modules
+  while retaining existing public entry points.
 - Render concurrent collection loops for per-item fanout, showing one iteration's
   ordered body with an explicit overlap cue. Unknown or disputed execution remains blocked.
+
+Existing architecture, workflow, sequence, collection, and workspace schemas are
+unchanged. No model migration is required. See [upgrading from 0.2.0](docs/migrations.md#020-to-030).
 
 ## 0.2.0 — 2026-09-11
 
