@@ -235,17 +235,31 @@ function sourceRead(root, discovery, source, loaded, decoded, options) {
   if (file.status !== 'analyzed') Object.assign(excerpt, { verification: 'unavailable', reason: `File was skipped by the scan: ${file.reason}.` });
   else {
     const mapping = sourceRootFor(root, discovery, snapshot, options);
-    try {
-      const text = readVerifiedSourceText(fs.realpathSync(mapping.directory), file);
+    const window = text => {
       const all = text.split(/\r?\n/), context = options.contextLines ?? 3;
       const first = options.fromLine ?? (record.span ? Math.max(1, record.span.start.line - context) : 1);
       const last = record.span && options.fromLine === undefined ? Math.min(all.length, record.span.end.line + context) : all.length;
       lines = all.slice(first - 1, last);
-      Object.assign(excerpt, { verification: 'source-byte-verified', mapping: mapping.mapping, contentDigest: file.contentDigest, startLine: first, requestedEndLine: last, totalLines: all.length });
+      return { startLine: first, requestedEndLine: last, totalLines: all.length };
+    };
+    let directory;
+    try {
+      directory = fs.realpathSync(mapping.directory);
+      const text = readVerifiedSourceText(directory, file);
+      Object.assign(excerpt, { verification: 'source-byte-verified', mapping: mapping.mapping, contentDigest: file.contentDigest, ...window(text) });
     } catch (error) {
       const reason = ['changed-bytes', 'changed-text-length'].includes(error.message) ? 'changed' : error.code === 'ENOENT' ? 'unavailable' : error.message === 'symlink' ? 'symlink' : error.code ?? error.message;
-      Object.assign(excerpt, { verification: reason, mapping: mapping.mapping, reason: reason === 'changed' ? 'Current bytes differ from the scanned file; the recorded location may no longer match.' : 'Source bytes could not be read at the mapped root.',
-        recovery: reason === 'changed' ? 'Rescan into a new snapshot, or read the file directly while treating the recorded span as historical.' : 'Pass --source-root for the scanned tree or add .waxwing/config.json sourceRoots.' });
+      let current = null;
+      // A changed file still helps during active editing; its lines are labeled, never verified.
+      if (reason === 'changed') { try { current = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(fs.readFileSync(path.join(directory, file.path))); } catch { current = null; } }
+      if (current !== null) {
+        Object.assign(excerpt, { verification: 'unverified-current-file', mapping: mapping.mapping, ...window(current),
+          reason: 'Current bytes differ from the scanned file. These are the current lines at the recorded location; the declaration may have moved or changed.',
+          recovery: 'Rescan into a new snapshot to verify locations again.' });
+      } else {
+        Object.assign(excerpt, { verification: reason, mapping: mapping.mapping, reason: reason === 'changed' ? 'Current bytes differ from the scanned file and could not be read as text.' : 'Source bytes could not be read at the mapped root.',
+          recovery: reason === 'changed' ? 'Rescan into a new snapshot, or read the file directly while treating the recorded span as historical.' : 'Pass --source-root for the scanned tree or add .waxwing/config.json sourceRoots.' });
+      }
     }
   }
   const views = [];

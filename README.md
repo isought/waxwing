@@ -149,7 +149,7 @@ question. You (or the agent) give it concrete input:
   returns the recorded function or class spanning that line, and its file.
 
 Both repeat and combine. Each candidate reports its match basis; `read` returns records, related
-references, existing view links and hash-verified source excerpts. Nothing calls
+references, existing view links and source excerpts (hash-verified, or labeled unverified when the file changed since the scan). Nothing calls
 an LLM or proves an explanation. See [agent entry](docs/agent-entry.md).
 
 ### Work on Waxwing

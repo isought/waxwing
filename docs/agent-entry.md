@@ -119,11 +119,13 @@ location and revision. After the artifact changes, `read` returns
 for models; declarations, incoming references and outgoing call occurrences for
 source), recorded evidence, and links to existing site pages when a built site
 contains the same model. Documents and source excerpts are returned in whole lines;
-use `nextActions` with `--from-line` to continue. Source excerpts are included only
-when the current bytes equal the scanned digest (`source-byte-verified`). The source
-root is `--source-root`, then `sourceRoots` in the project configuration, then the
-project root. Changed, missing and skipped files report `changed` or `unavailable`
-with a recovery action, and the record stays readable.
+use `nextActions` with `--from-line` to continue. Source excerpts are labeled `source-byte-verified` when the current bytes equal the
+scanned digest. When the file has changed since the scan, `read` still returns the
+current lines at the recorded location, labeled `unverified-current-file`; the
+declaration may have moved, so rescan to verify again. The source root is
+`--source-root`, then `sourceRoots` in the project configuration, then the project
+root. Missing and skipped files report `unavailable` with a recovery action, and
+the record stays readable.
 
 `nextActions` entries are `{operation, arguments, options}` data. Arguments come
 from artifacts and must not be pasted into a shell as unquoted text.

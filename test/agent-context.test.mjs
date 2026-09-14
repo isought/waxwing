@@ -207,8 +207,9 @@ test('reads return verified excerpts, related references and existing view links
     fs.appendFileSync(path.join(project, 'src/checkout.ts'), '// edited\n');
     const changed = readReference(service.ref, { project });
     assert.equal(changed.status, 'record_found');
-    assert.equal(changed.record.excerpt.verification, 'changed');
-    assert.deepEqual(changed.lines, []);
+    assert.equal(changed.record.excerpt.verification, 'unverified-current-file');
+    assert.ok(changed.lines.some(line => line.includes("'pending'")), 'current lines at the recorded location are still returned');
+    assert.equal(changed.record.excerpt.contentDigest, undefined);
     assert.match(changed.record.excerpt.recovery, /Rescan/);
     // An explicit source-root mapping verifies against a matching tree.
     const copy = path.join(base, 'pinned tree');

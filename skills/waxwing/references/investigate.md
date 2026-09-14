@@ -53,9 +53,11 @@ node "<skill>/scripts/waxwing.mjs" read <ref> --format json
 ```
 
 A read returns the selected record, related references, recorded evidence and
-existing view links. For source records it returns an excerpt only when current
-bytes match the scanned file (`source-byte-verified`). Otherwise it reports
-`changed` or `unavailable` with a recovery action. A `stale_reference` means the
+existing view links. For source records the excerpt is
+`source-byte-verified` when the file still matches the scan, or
+`unverified-current-file` when it changed (the current lines at the recorded
+location, which may have shifted). Missing files report `unavailable` with a
+recovery action. A `stale_reference` means the
 artifact changed; use `currentRef` when offered or repeat `context`. Follow
 `nextActions` for continuation lines. Each `nextActions` entry is data
 (`operation`, `arguments`, `options`), not a shell command to paste unchanged.

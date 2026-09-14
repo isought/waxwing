@@ -13,7 +13,7 @@ Software versions and experimental schema versions are tracked separately.
 - Read-only `discover`, `context` and `read` use protocol `0.1-context`: bounded
   discovery of models, source snapshots, workspaces and sites; explicit
   `--term` lookup over recorded names/paths and `--at path:line` lookup of the
-  enclosing recorded declaration, each with a match basis (no question parsing); revision-bound references; verified source
+  enclosing recorded declaration, each with a match basis (no question parsing); revision-bound references; verified (or labeled unverified) source
   excerpts, document ranges and existing site links; optional whole-response byte budgets (uncapped by default)
   and distinct statuses. Graphify graphs are recognized but not yet read.
 - `guide` and `review-update` are available as top-level commands. The authoring
