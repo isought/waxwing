@@ -4,6 +4,9 @@ Software versions and experimental schema versions are tracked separately.
 
 ## Unreleased
 
+- Render concurrent collection loops for per-item fanout, showing one iteration's
+  ordered body with an explicit overlap cue. Unknown or disputed execution remains blocked.
+
 ## 0.2.0 — 2026-09-11
 
 - Publish under `@isought/waxwing`, with repository and documentation links pointing
