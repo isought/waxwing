@@ -29,7 +29,7 @@ repository and run terminal commands.
 Install the published release:
 
 ```sh
-npm install -g @isought/waxwing@0.2.0
+npm install -g @isought/waxwing@0.3.0
 ```
 
 Open your repository with your agent and give it one question. For a web service,
@@ -95,15 +95,17 @@ changes, see [Contributing](CONTRIBUTING.md).
 - [JavaScript API](docs/modules.md)
 - [Release notes](CHANGELOG.md) and [migration guidance](docs/migrations.md)
 
-### Development preview: source scanning
+### Experimental source scanning
 
-The [source scanner preview](docs/source-scanning.md) on this development branch
-can separately index JavaScript/TypeScript declarations, imports and references:
+The [experimental source scanner](docs/source-scanning.md) indexes source evidence
+separately from authored architecture models. JavaScript/TypeScript use compiler
+bindings; other supported languages use Tree-sitter syntax extraction.
+With Waxwing 0.3.0 installed, run:
 
 ```sh
-node bin/waxwing.mjs scan /path/to/repository /tmp/project-scan.json --source-id my-project
-node bin/waxwing.mjs scan-query /tmp/project-scan.json search loadModel
-node bin/waxwing.mjs scan-view /tmp/project-scan.json /tmp/project-source.html
+waxwing scan /path/to/repository /tmp/project-scan.json --source-id my-project
+waxwing scan-query /tmp/project-scan.json search loadModel
+waxwing scan-view /tmp/project-scan.json /tmp/project-source.html
 ```
 
 The source explorer includes a focused static graph. An optional connected site
@@ -120,8 +122,11 @@ is recorded. The [connected example](experiments/connected-source/README.md)
 describes what is curated and what the scanner establishes.
 
 It reports unresolved bindings and skipped files. Source snapshots remain
-separate from authored architecture models. Other language adapters, including
-Lean 4, are still planned; this preview is not in the published `0.2.0` release.
+separate from authored architecture models. Baseline syntax profiles cover Python,
+Java, Kotlin, Go, C/C++, C#, Rust, Ruby, Swift, Objective-C, SQL, JSON, and shell.
+Syntax-only references remain unresolved; support is not equivalent across languages.
+Lean 4 and full Objective-C++ are future work. See the [coverage table](docs/source-scanning.md)
+for limits. Scanning is experimental and is not included in 0.2.0.
 
 ### Work on Waxwing
 

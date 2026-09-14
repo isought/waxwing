@@ -2,9 +2,11 @@
 
 Waxwing is one npm package with subpath exports. Modules are separate code
 entry points, not separate services or separately published packages. In a
-consuming Node.js project, run `npm install @isought/waxwing@0.2.0`; imports below then
+consuming Node.js project, run `npm install @isought/waxwing@0.3.0`; imports below then
 resolve locally. A global CLI installation alone does not expose library imports.
 Within a source checkout, run `npm ci` before using these examples.
+The experimental analysis, source, scan, source-view, connected, and source-links
+exports were added in 0.3.0 and are unavailable in 0.2.0.
 
 ## Model
 

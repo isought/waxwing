@@ -1,4 +1,7 @@
-# Source scanning — development preview
+# Source scanning — experimental
+
+Available in Waxwing 0.3.0; unavailable in the 0.2.0 package.
+This experimental feature retains development preview limits described below.
 
 The scanner produces a separate `0.1-source-draft` snapshot of source evidence.
 JavaScript and TypeScript retain the dedicated TypeScript compiler adapter;
@@ -15,13 +18,13 @@ architectural intention or proves runtime behavior.
 
 The pinned grammar bundle contains many more grammars than Waxwing enables.
 Only profiles with extraction fixtures are advertised. This is broad baseline
-coverage, not equivalent semantic support across languages. Lean remains a first
-scanner-release target: the current WASM bundle does not contain its grammar,
+coverage, not equivalent semantic support across languages. Lean is future work
+and is outside the 0.3.0 scope: the current WASM bundle does not contain its grammar,
 and proof/elaboration evidence still needs a dedicated integration.
 
 ## Run it
 
-From this branch's checkout after `npm ci`:
+From a source checkout after `npm ci`:
 
 ```sh
 node bin/waxwing.mjs scan /path/to/repository /tmp/project-scan.json --source-id my-project
@@ -55,7 +58,8 @@ it is not a statement that the enclosing function directly executes that call.
 
 These commands are available through the installed skill adapter as well.
 `guide scanning` exposes this document. Published older Waxwing releases do not
-contain these commands; this document describes the scanner branch.
+contain these commands. Install 0.3.0 or newer and replace
+`node bin/waxwing.mjs` with `waxwing` in the commands above.
 
 The output path must be outside the source directory, including through
 symlinks. Outputs are computed and validated before an atomic file replacement.

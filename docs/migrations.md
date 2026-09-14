@@ -1,8 +1,34 @@
 # Upgrading Waxwing specs and exports
 
 This guide uses commands that exist today. There is no automatic `migrate`
-command and no required source transformation for the 0.2.0 changes.
+command and no required source transformation for the 0.3.0 changes.
 Read the target version's [release notes](../CHANGELOG.md) before upgrading.
+
+## 0.2.0 to 0.3.0
+
+Upgrade the global CLI with:
+
+```sh
+npm install -g @isought/waxwing@0.3.0
+```
+
+For a project dependency, omit `-g`. Node.js 20.19.0 or newer remains required.
+Existing public module entry points and model schemas are retained; do not
+change a model's `schemaVersion` merely to upgrade Waxwing. Rebuild a concurrent
+collection-loop diagram to use the rendering fix; no source edit is required.
+
+Source scanning and connected source exploration are experimental additions.
+They use separate `0.1-source-draft` snapshots and optional connection records;
+existing architecture or sequence models do not need to become source snapshots.
+JavaScript/TypeScript have compiler bindings; other supported profiles extract
+syntax with unresolved targets. Lean 4 and full Objective-C++ are outside this
+release's scope. See [coverage and limits](source-scanning.md).
+
+The new parser dependencies increase installation size, even when using only
+diagram features. Scans use local parser assets and do not execute repository
+code or fetch grammars. Reinstall a managed Waxwing skill with the upgraded
+CLI's `skill install` command to bind it to the new runtime; preserve custom
+edits or choose a new destination if the installer reports modifications.
 
 ## npm scope change in 0.2.0
 

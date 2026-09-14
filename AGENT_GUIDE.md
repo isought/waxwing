@@ -20,7 +20,7 @@ remains the maintained contract source and can still be used on its own.
 
 ## Installed package or checkout
 
-`npm install -g @isought/waxwing@0.2.0` provides the `waxwing` command.
+`npm install -g @isought/waxwing@0.3.0` provides the `waxwing` command.
 The matching guide is at `$(npm root -g)/@isought/waxwing/AGENT_GUIDE.md` on macOS/Linux;
 `npm root -g` prints the package directory on other platforms as well.
 
@@ -1967,7 +1967,7 @@ which claims are still accurate. See the workspace guide for the complete workfl
 
 ## Source scanning preview
 
-This development branch additionally provides `scan`, `scan-check` and
+The experimental scanner in 0.3.0 provides `scan`, `scan-check` and
 `scan-query` with compiler bindings for JavaScript/TypeScript and baseline
 Tree-sitter syntax for additional languages. Use the installed adapter's `guide scanning`
 or the [scanner guide](docs/source-scanning.md) for commands, the source schema,
@@ -1980,7 +1980,7 @@ before interpreting results. A resolved target is a static binding within the
 recorded compiler configuration, not evidence of runtime execution. Prefer explicit
 evidence and human explanations for terms, intended boundaries, goals and assumptions.
 Inspect per-file `analysis` capabilities: syntax-only call/import targets are
-unresolved observations. Lean 4 and full Objective-C++ remain release work.
+unresolved observations. Lean 4 and full Objective-C++ are future work, outside the 0.3.0 scope.
 
 The preview also includes `scan-view` for a standalone source graph and
 `build-connected` for optional system-to-source navigation with recorded rationale
