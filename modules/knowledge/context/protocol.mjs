@@ -2,7 +2,6 @@ import { digest } from '../shared/model.mjs';
 
 export const CONTEXT_PROTOCOL = '0.1-context';
 export const CONTEXT_STATUSES = ['context_found', 'needs_scope', 'no_context', 'no_match', 'unsupported_input', 'budget_too_small', 'record_found', 'stale_reference', 'invalid_request', 'runtime_error'];
-export const DEFAULT_BUDGET = 16384;
 export const MIN_BUDGET = 1024;
 export const MAX_BUDGET = 1048576;
 
@@ -28,8 +27,10 @@ export function decodeReference(reference) {
   return { sourceKey, revision, recordId, kind };
 }
 
+// No cap by default; an explicit budget bounds the whole response.
 export function validBudget(value) {
-  const budget = value ?? DEFAULT_BUDGET;
+  if (value === undefined || value === null) return null;
+  const budget = value;
   if (!Number.isInteger(budget) || budget < MIN_BUDGET || budget > MAX_BUDGET) throw new Error(`Budget must be an integer number of bytes from ${MIN_BUDGET} to ${MAX_BUDGET}.`);
   return budget;
 }
@@ -40,6 +41,7 @@ export const packetBytes = packet => Buffer.byteLength(JSON.stringify(packet) + 
 // never shortened; a response whose required envelope cannot fit is rejected.
 export function fitPacket(envelope, lists, budget) {
   const packet = structuredClone(envelope);
+  if (budget === null) return ordered({ ...packet, ...structuredClone(lists), budget: { maxOutputBytes: null, truncated: false } }, Object.keys(lists), null);
   packet.budget = { maxOutputBytes: budget, truncated: false, omitted: {} };
   for (const key of Object.keys(lists)) packet[key] = [];
   // Reserve the bytes of a worst-case truncation marker so incremental sizes stay exact enough.
@@ -70,6 +72,7 @@ function ordered(packet, listKeys, budget) {
 }
 
 function trim(packet, listKeys, budget) {
+  if (budget === null) return packet;
   // The truncation flag itself adds bytes; remove trailing items until it fits.
   while (packetBytes(packet) > budget) {
     const key = [...listKeys].reverse().find(name => packet[name].length);

@@ -14,7 +14,7 @@ Software versions and experimental schema versions are tracked separately.
   discovery of models, source snapshots, workspaces and sites; explicit
   `--term` lookup over recorded names/paths and `--at path:line` lookup of the
   enclosing recorded declaration, each with a match basis (no question parsing); revision-bound references; verified source
-  excerpts, document ranges and existing site links; whole-response byte budgets
+  excerpts, document ranges and existing site links; optional whole-response byte budgets (uncapped by default)
   and distinct statuses. Graphify graphs are recognized but not yet read.
 - `guide` and `review-update` are available as top-level commands. The authoring
   skill now routes behavior questions to a separate investigation reference.

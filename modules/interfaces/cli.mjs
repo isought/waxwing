@@ -15,9 +15,9 @@ const usage = `Waxwing — experimental modular diagram tool
   waxwing init --agent codex|claude [--agent ...] [--project directory] [--dry-run]
   waxwing doctor [--project directory] [--format json]
   waxwing detach --agent codex|claude [--agent ...] [--project directory] [--dry-run]
-  waxwing discover [--project directory] [--workspace workspace.json] [--budget 16384] [--format json]
-  waxwing context (--term text | --at path:line) [--term ... --at ...] [--source key ...] [--project directory] [--workspace workspace.json] [--budget 16384] [--output file] [--format json]
-  waxwing read <reference> [--from-line n] [--context-lines 3] [--source-root directory] [--project directory] [--budget 16384] [--output file] [--format json]
+  waxwing discover [--project directory] [--workspace workspace.json] [--budget bytes] [--format json]
+  waxwing context (--term text | --at path:line) [--term ... --at ...] [--source key ...] [--project directory] [--workspace workspace.json] [--budget bytes] [--output file] [--format json]
+  waxwing read <reference> [--from-line n] [--context-lines 3] [--source-root directory] [--project directory] [--budget bytes] [--output file] [--format json]
   waxwing guide <topic|list>
   waxwing review-update <before-model.json> <updated-model.json>
   waxwing skill install <skill-directory>

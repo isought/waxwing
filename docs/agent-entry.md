@@ -107,7 +107,7 @@ adds a workspace manifest, and `--output <file>` writes the packet for handoff.
 | `no_match` | Nothing matched; `vocabulary` lists recorded names. A miss is not proof of absence. |
 | `no_context` | No readable knowledge artifacts; `searched` shows what was checked. |
 | `unsupported_input` | Only unreadable formats, such as Graphify, were found. |
-| `budget_too_small` | The response cannot fit; retry with `minimumOutputBytes` or more. |
+| `budget_too_small` | Only with `--budget`: the response cannot fit; retry with `minimumOutputBytes` or more. |
 | `record_found`, `stale_reference` | Results of `read`. |
 | `invalid_request`, `runtime_error` | Printed to stderr with exit status 1. |
 
@@ -130,10 +130,11 @@ from artifacts and must not be pasted into a shell as unquoted text.
 
 ### Budgets
 
-`--budget` (default 16384, range 1024–1048576) bounds the **entire UTF-8 response
-in bytes**, including metadata. Whole items are dropped rather than shortened;
-`budget.truncated` and `budget.omitted` report what was left out. This is not a
-token count.
+Responses are not capped by default. `--budget <bytes>` (range 1024–1048576)
+optionally bounds the **entire UTF-8 response**, including metadata. Whole items
+are dropped rather than shortened; `budget.truncated` and `budget.omitted` report
+what was left out, and `read` offers `--from-line` to continue. This is not a
+token count. `context` still returns at most 20 lexical candidates per request.
 
 ## What is discovered
 

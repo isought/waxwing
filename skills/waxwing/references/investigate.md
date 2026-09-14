@@ -28,8 +28,8 @@ node "<skill>/scripts/waxwing.mjs" context --at src/checkout/service.ts:118 --fo
 Typical flow for text that only exists inside code, such as a command name or an
 error message: `grep -rn "build-site" src`, then `context --at <printed path:line>`.
 
-Use `--source <key>` to select one reported source, and `--budget <bytes>` when
-the default 16 KiB response is too small or too large.
+Use `--source <key>` to select one reported source, and `--budget <bytes>` to cap a
+response (no cap by default).
 
 Act on `status`:
 
@@ -40,7 +40,7 @@ Act on `status`:
 | `no_match` | Nothing recorded matched. Pick a name from `vocabulary` or the code and retry once, or continue with normal tools. A miss is not proof of absence. |
 | `no_context` | No readable knowledge artifacts. Continue with normal tools. |
 | `unsupported_input` | Artifacts exist but this runtime cannot read them. Continue with normal tools. |
-| `budget_too_small` | Retry with the reported budget. |
+| `budget_too_small` | Only with `--budget`: retry with the reported budget, or omit it. |
 
 Do not repeat an unchanged failed lookup. Do not run a repository scan just to
 satisfy this workflow; scanning is optional and needs the user's authorization

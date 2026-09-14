@@ -99,7 +99,7 @@ test('discovery covers native, Graphify-only, both and neither without writing t
     assert.equal(byKey['graphify-out/graph.json'].format, 'graphify');
     assert.equal(byKey['graphify-out/graph.json'].status, 'unsupported');
     assert.equal(byKey['broken/model.json'].status, 'invalid');
-    assert.ok(bytes(report) <= 16384);
+    assert.deepEqual(report.budget, { maxOutputBytes: null, truncated: false }, 'no cap unless --budget is given');
     assert.deepEqual(snapshotOf(project), before, 'read-only commands leave project bytes and mtimes unchanged');
 
     assert.equal(discoverReport({ project: foreign }).status, 'unsupported_input');
@@ -150,6 +150,9 @@ test('context matches explicit terms and locations, keeps same-name records sepa
     assert.throws(() => buildContext({ project, at: ['src/checkout.ts'] }), /path:line/);
     assert.throws(() => buildContext({ project, terms: ['x'], sources: ['nope'] }), /Unknown source "nope"/);
 
+    const uncapped = buildContext({ project, terms: ['CheckoutService', 'checkout', 'status'] });
+    assert.equal(uncapped.budget.maxOutputBytes, null);
+    assert.equal(uncapped.budget.truncated, false);
     for (const budget of [1024, 1500, 2048, 4096, 16384]) {
       const packet = buildContext({ project, terms: ['CheckoutService', 'checkout', 'status'], budget });
       assert.ok(bytes(packet) <= budget, `packet ${bytes(packet)} exceeds ${budget}`);
@@ -180,6 +183,9 @@ test('reads return verified excerpts, related references and existing view links
     assert.equal(readReference(incoming.ref, { project }).status, 'record_found');
 
     // Continuation lines bind to the same reference and never exceed the budget.
+    const whole = readReference(service.ref, { project });
+    assert.equal(whole.budget.truncated, false);
+    assert.equal(whole.nextActions, undefined);
     const partial = readReference(service.ref, { project, budget: 1024 + 900 });
     assert.ok(bytes(partial) <= 1924);
     if (partial.nextActions) assert.equal(readReference(service.ref, { project, fromLine: partial.nextActions[0].options.fromLine }).status, 'record_found');
