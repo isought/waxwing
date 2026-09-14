@@ -145,6 +145,7 @@ modules/
     documents/     Markdown parsing, resolved links and asset validation
     query/         Bounded retrieval of recorded knowledge
     context/       Agent context protocol: references, byte budgets, term and location matching
+    foreign/       Read-only adapters for other tools' artifacts (Graphify node-link graphs)
     records/       In-memory model update inventories
     workspace/     Manifest validation and potential review scope
     source/        Source snapshot validation, identity and bounded queries

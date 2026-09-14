@@ -116,6 +116,8 @@ try {
     fs.copyFileSync(path.join(installed, 'examples/order-processing/model.json'), path.join(project, 'model.json'));
     const scanFile = path.join(temporary, 'agent-scan.json');
     run(cli, ['scan', project, scanFile, '--source-id', 'agent-project']);
+    fs.mkdirSync(path.join(project, 'graphify-out'));
+    fs.writeFileSync(path.join(project, 'graphify-out/graph.json'), JSON.stringify({ directed: false, nodes: [{ id: 'status', label: 'status()', _callable: true, file_type: 'code', source_file: 'src/checkout.ts', source_location: 'L1' }], links: [] }));
     fs.mkdirSync(path.join(project, '.waxwing'));
     fs.writeFileSync(path.join(project, '.waxwing/config.json'), JSON.stringify({ schemaVersion: '0.1-project-config', artifacts: [scanFile] }));
     // Other waxwing installations (such as npm link) would make PATH ambiguous; exclude them here.
@@ -131,16 +133,18 @@ try {
     assert.equal(setup.status, 'installed'); assert.equal(setup.readiness.runtimeOnPath, 'this-runtime');
     assert.ok(!fs.readFileSync(path.join(project, '.claude/skills/waxwing/SKILL.md'), 'utf8').includes(installed), 'portable skill must not bind the package path');
     const doctor = inProject(['doctor', '--format', 'json']);
-    assert.equal(doctor.status, 'ready', JSON.stringify(doctor.problems)); assert.equal(doctor.knowledge.available, 2);
+    assert.equal(doctor.status, 'ready', JSON.stringify(doctor.problems)); assert.equal(doctor.knowledge.available, 3);
     const context = inProject(['context', '--term', 'CheckoutService', '--format', 'json']);
     assert.equal(context.status, 'context_found');
     const reference = context.candidates.find(c => c.location?.path === 'src/checkout.ts').ref;
     const record = inProject(['read', reference, '--format', 'json']);
     assert.equal(record.record.excerpt.verification, 'source-byte-verified');
+    const foreign = inProject(['context', '--at', 'src/checkout.ts:1', '--format', 'json']).candidates.find(c => c.format === 'graphify');
+    assert.equal(inProject(['read', foreign.ref, '--format', 'json']).record.excerpt.verification, 'unverified-current-file');
     assert.equal(inProject(['detach', '--agent', 'codex', '--agent', 'claude']).status, 'detached');
     assert.equal(fs.readFileSync(path.join(project, 'AGENTS.md'), 'utf8'), '# Team rules\n');
     assert.ok(!fs.existsSync(path.join(project, '.claude')) && fs.existsSync(path.join(project, '.waxwing/config.json')));
-    console.log('Agent entry package check passed: portable init/doctor/context/read/detach in a separate project.');
+    console.log('Agent entry package check passed: portable init/doctor/context/read/detach and Graphify reads in a separate project.');
   }
   console.log(`Package smoke check passed: ${manifest.name}@${manifest.version}, ${paths.length} files, ${pack.size} compressed bytes; integrity ${pack.integrity}; exports, recovery, collections, queries, workspace lineage, installed skill binding/build/update passed.`);
 } finally {

@@ -76,12 +76,12 @@ test('references are opaque, integrity-checked and revision-bound', () => {
   assert.throws(() => decodeReference('rm -rf /'), /Unrecognized/);
 });
 
-test('discovery covers native, Graphify-only, both and neither without writing to the project', async () => {
+test('discovery covers native, Graphify alongside native, unreadable Graphify shapes and neither without writing to the project', async () => {
   const { base, project } = await fixture();
   const empty = path.join(base, 'empty'), foreign = path.join(base, 'foreign');
   try {
     write(path.join(empty, 'package.json'), '{"name":"not-knowledge"}');
-    write(path.join(foreign, 'graphify-out/graph.json'), graphify);
+    write(path.join(foreign, 'graphify-out/graph.json'), JSON.stringify({ nodes: [{ id: 'a' }] }));
     write(path.join(project, 'graphify-out/graph.json'), graphify);
     write(path.join(project, 'broken/model.json'), '{"schemaVersion":"0.5-draft","id":"broken"}');
     const before = snapshotOf(project);
@@ -97,7 +97,7 @@ test('discovery covers native, Graphify-only, both and neither without writing t
     assert.ok(path.isAbsolute(scan.key), 'external artifact keeps an absolute location');
     assert.equal(scan.registration, '.waxwing/config.json artifacts');
     assert.equal(byKey['graphify-out/graph.json'].format, 'graphify');
-    assert.equal(byKey['graphify-out/graph.json'].status, 'unsupported');
+    assert.equal(byKey['graphify-out/graph.json'].status, 'available', 'a Graphify graph coexists with native sources');
     assert.equal(byKey['broken/model.json'].status, 'invalid');
     assert.deepEqual(report.budget, { maxOutputBytes: null, truncated: false }, 'no cap unless --budget is given');
     assert.deepEqual(snapshotOf(project), before, 'read-only commands leave project bytes and mtimes unchanged');

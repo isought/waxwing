@@ -15,7 +15,9 @@ Software versions and experimental schema versions are tracked separately.
   `--term` lookup over recorded names/paths and `--at path:line` lookup of the
   enclosing recorded declaration, each with a match basis (no question parsing); revision-bound references; verified (or labeled unverified) source
   excerpts, document ranges and existing site links; optional whole-response byte budgets (uncapped by default)
-  and distinct statuses. Graphify graphs are recognized but not yet read.
+  and distinct statuses. Graphify node-link graphs
+  (`graphify-out/graph.json` or registered paths) are read alongside native sources,
+  with direction markers, confidence and unverified current-file excerpts.
 - `guide` and `review-update` are available as top-level commands. The authoring
   skill now routes behavior questions to a separate investigation reference.
 

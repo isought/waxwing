@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { loadModel } from './load-model.mjs';
 import { loadWorkspace } from './workspace.mjs';
 import { validateSourceSnapshot } from '../knowledge/source/model.mjs';
 import { digest, canonical } from '../knowledge/shared/model.mjs';
+import { normalizeGraphify } from '../knowledge/foreign/graphify.mjs';
 import { contains, displayPath, git, gitHead, loadProjectConfig, resolveProject } from './project.mjs';
 
 export const DISCOVERY_LIMITS = { maxListedFiles: 200000, maxCandidates: 2000, maxSniffBytes: 4096, maxModelBytes: 16 * 1024 * 1024, maxSnapshotBytes: 64 * 1024 * 1024, maxDepth: 12, timeBudgetMs: 5000 };
@@ -14,6 +16,7 @@ const recognized = {
   ...Object.fromEntries([...modelVersions].map(version => [version, 'waxwing-model'])),
 };
 const graphifyDefault = 'graphify-out/graph.json';
+export const READABLE_FORMATS = ['waxwing-model', 'waxwing-source-snapshot', 'graphify'];
 
 function sniff(filename, limit) {
   const fd = fs.openSync(filename, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
@@ -123,8 +126,19 @@ export function discoverKnowledge(options = {}) {
     try { head = sniff(physical, limits.maxSniffBytes); } catch (error) {
       return { ...base, format: candidate.expected ?? 'unknown', status: 'unavailable', message: error.code ?? error.message };
     }
-    if (physical.endsWith(`${path.sep}graph.json`) && !/"schemaVersion"/.test(head) && /"nodes"\s*:/.test(head)) {
-      return { ...base, format: 'graphify', status: 'unsupported', message: 'Graphify node-link graphs are recognized but not yet readable by this Waxwing version.' };
+    // Graphify graphs: the conventional location, or any explicitly registered node-link JSON.
+    const explicit = candidate.registrations.some(r => !r.startsWith('conventional'));
+    if ((physical.endsWith(`${path.sep}graph.json`) || explicit) && !/"schemaVersion"/.test(head) && /"nodes"\s*:/.test(head)) {
+      try {
+        const stat = fs.statSync(physical);
+        if (stat.size > limits.maxSnapshotBytes) return { ...base, format: 'graphify', status: 'skipped', message: `File exceeds the ${limits.maxSnapshotBytes}-byte discovery limit.` };
+        const bytes = fs.readFileSync(physical), graph = normalizeGraphify(JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)));
+        return { ...base, format: 'graphify', status: 'available', title: 'Graphify graph', revision: createHash('sha256').update(bytes).digest('hex'), summary: graph.summary,
+          ...(graph.builtAtCommit ? { builtAtCommit: graph.builtAtCommit } : {}), freshness: { artifact: 'parsed', sourceBytes: 'not-recorded', semantic: 'unknown' },
+          ...(graph.diagnostics.length ? { diagnostics: graph.diagnostics.slice(0, 5) } : {}), load: { graph } };
+      } catch (error) {
+        return { ...base, format: 'graphify', status: error.code === 'unsupported-shape' ? 'unsupported' : 'invalid', message: error.message };
+      }
     }
     const version = head.match(/"schemaVersion"\s*:\s*"([^"]{1,80})"/)?.[1];
     const format = recognized[version] ?? candidate.expected ?? 'unknown';
@@ -186,6 +200,7 @@ export function discoverKnowledge(options = {}) {
   for (const source of sources.sort((a, b) => a.location < b.location ? -1 : a.location > b.location ? 1 : 0)) {
     source.key = source.location;
     if (source.load) { loaded.set(source.key, { ...source.load, filename: path.resolve(root, source.location) }); delete source.load; }
+    if (source.format === 'graphify' && source.status === 'available') source.freshness.gitHead = !source.builtAtCommit || !head ? 'unknown' : head.startsWith(source.builtAtCommit) || source.builtAtCommit.startsWith(head) ? 'matches-current-head' : 'differs-from-current-head';
     if (source.format === 'waxwing-source-snapshot' && source.status === 'available') source.freshness.gitHead = !source.gitHead || !head ? 'unknown' : source.gitHead === head ? 'matches-current-head' : 'differs-from-current-head';
     if (source.format === 'waxwing-model' && source.status === 'available') {
       const model = loaded.get(source.key).model;
@@ -213,7 +228,7 @@ export function discoverKnowledge(options = {}) {
     Object.assign(other, { status: 'duplicate', duplicateOf: preferred.key });
     delete other.views; delete other.copies; loaded.delete(other.key);
   }
-  const available = sources.filter(s => s.status === 'available' && ['waxwing-model', 'waxwing-source-snapshot'].includes(s.format));
+  const available = sources.filter(s => s.status === 'available' && READABLE_FORMATS.includes(s.format));
   const status = available.length ? 'sources_found' : sources.some(s => s.status === 'unsupported' && s.format !== 'unknown') ? 'unsupported_input' : 'no_context';
   return {
     status,

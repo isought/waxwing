@@ -106,7 +106,7 @@ adds a workspace manifest, and `--output <file>` writes the packet for handoff.
 | `needs_scope` | More than 20 matches across several sources; select `--source` or use a more specific term. |
 | `no_match` | Nothing matched; `vocabulary` lists recorded names. A miss is not proof of absence. |
 | `no_context` | No readable knowledge artifacts; `searched` shows what was checked. |
-| `unsupported_input` | Only unreadable formats, such as Graphify, were found. |
+| `unsupported_input` | Only unreadable formats were found, such as a JSON graph without links or edges. |
 | `budget_too_small` | Only with `--budget`: the response cannot fit; retry with `minimumOutputBytes` or more. |
 | `record_found`, `stale_reference` | Results of `read`. |
 | `invalid_request`, `runtime_error` | Printed to stderr with exit status 1. |
@@ -154,8 +154,8 @@ per-source status: `available`, `duplicate`, `invalid`, `unavailable`,
 - Workspace manifests add their local models. Site manifests link their pages to
   any model with the same digest. Byte-identical model copies collapse into one
   source. Layout JSON and collections are listed but not indexed.
-- `graphify-out/graph.json` is recognized and reported as `unsupported` in this
-  version; reading it is planned.
+- Graphify: `graphify-out/graph.json`, or any node-link graph registered under
+  `artifacts`. See [Graphify graphs](#graphify-graphs).
 
 ```json
 {
@@ -169,6 +169,35 @@ per-source status: `available`, `duplicate`, `invalid`, `unavailable`,
 Discovery identifies data sources; it does not establish relevance, authority or
 current behavior. A scan output must still be written outside the scanned tree.
 
+## Graphify graphs
+
+Waxwing reads an existing Graphify graph directly. It never installs or runs
+Graphify, loads its hooks, or treats its agent instructions as Waxwing policy.
+Graphify and native Waxwing sources are searched together, each candidate keeping
+its own `sourceKey` and `format`.
+
+Supported: the node-link JSON Graphify writes (`nodes` plus `links` or `edges`),
+node `id`, `label`, `source_file` and `source_location` (`L54`), and edge
+`relation`, `confidence`, `context` and location. When `_src`/`_tgt` markers are
+present they define edge direction; otherwise the serialized `source`/`target`
+order is used and labeled as such. Hyperedges, edges to unknown nodes and
+unrecognized fields are reported in `diagnostics` rather than guessed.
+
+- `--term` matches node labels (`writeSite()` matches `writeSite`), IDs and file paths.
+- `--at path:line` returns the nearest recorded callable starting at or above that
+  line, and the file node. Graphify records start lines only, so the basis says
+  containment is not established.
+- `read` returns the node, its original Graphify fields, incoming and outgoing
+  relationships with confidence and evidence location, and current file lines from
+  the start line, labeled `unverified-current-file` (Graphify records no content
+  digest). `--source-root` maps paths if Graphify ran in another directory.
+- A rebuilt graph changes the revision (file SHA-256), so older references become
+  `stale_reference`. `built_at_commit` is compared with the current HEAD when present.
+
+Relationships remain Graphify's extraction claims. Waxwing does not verify them or
+turn connectivity into execution order, and Graphify community names or report
+prose are not read.
+
 ## Measurement
 
 Every protocol response includes `measurement` (durations, source counts, output
@@ -178,7 +207,7 @@ references and source text are not recorded, and nothing is sent anywhere.
 
 ## Not yet included
 
-- Reading Graphify graphs and other foreign formats.
+- Other foreign formats, and Graphify report prose, community names and hyperedges.
 - A cache for large snapshots; each call loads and validates artifacts.
 - Evaluation of whether host sessions discover the skill and whether answers improve.
 - MCP transport, hooks that enforce lookups, persistent investigation state and

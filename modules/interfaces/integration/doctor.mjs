@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { resolveProject } from '../../application/project.mjs';
-import { discoverKnowledge } from '../../application/discover.mjs';
+import { READABLE_FORMATS, discoverKnowledge } from '../../application/discover.mjs';
 import { CONTEXT_PROTOCOL } from '../../knowledge/context/protocol.mjs';
 import { HOSTS, JOURNAL, TEMPLATE_VERSION, installCommand, instructionBlock, packageInfo, packageRoot, portableSkillFiles, sha256 } from './templates.mjs';
 import { findBlock, loadReceipt } from './lifecycle.mjs';
@@ -87,7 +87,7 @@ export function doctorReport({ project: projectPath, cwd, env = process.env } = 
   try {
     const discovery = discoverKnowledge({ projectInfo: project });
     const count = predicate => discovery.sources.filter(predicate).length;
-    knowledge = { status: discovery.status, available: count(s => s.status === 'available' && ['waxwing-model', 'waxwing-source-snapshot'].includes(s.format)),
+    knowledge = { status: discovery.status, available: count(s => s.status === 'available' && READABLE_FORMATS.includes(s.format)),
       unsupported: count(s => s.status === 'unsupported'), invalid: count(s => s.status === 'invalid'), config: discovery.searched.config, discoveryMs: discovery.measurement.discoveryMs };
   } catch (error) { knowledge = { status: 'runtime_error', message: error.message }; }
   const problems = [], repairs = [];

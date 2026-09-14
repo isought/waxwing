@@ -28,6 +28,10 @@ node "<skill>/scripts/waxwing.mjs" context --at src/checkout/service.ts:118 --fo
 Typical flow for text that only exists inside code, such as a command name or an
 error message: `grep -rn "build-site" src`, then `context --at <printed path:line>`.
 
+Candidates may come from Waxwing models, Waxwing source scans or an existing
+Graphify graph (`format: graphify`). Graphify relationships carry Graphify's
+confidence and are not verified; its excerpts are `unverified-current-file`.
+
 Use `--source <key>` to select one reported source, and `--budget <bytes>` to cap a
 response (no cap by default).
 

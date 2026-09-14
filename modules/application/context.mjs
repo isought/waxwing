@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { discoverKnowledge } from './discover.mjs';
+import { READABLE_FORMATS, discoverKnowledge } from './discover.mjs';
 import { readVerifiedSourceText } from './source-text.mjs';
 import { displayPath, resolveProject } from './project.mjs';
 import { modelRecords, recordText } from '../knowledge/query/index.mjs';
@@ -9,6 +9,7 @@ import { sourceNavigation } from '../knowledge/source/navigation.mjs';
 import { CONTEXT_PROTOCOL, budgetTooSmall, decodeReference, encodeReference, fitPacket, packetBytes, validBudget } from '../knowledge/context/protocol.mjs';
 import { contextTerms, contextVocabulary, locateCandidates, matchCandidates, parseLocation } from '../knowledge/context/match.mjs';
 import { siteTargetURL } from '../presentation/site/index.mjs';
+import { GRAPHIFY_LIMITATIONS } from '../knowledge/foreign/graphify.mjs';
 
 const MAX_CANDIDATES = 20;
 const hiddenDeclarationKinds = new Set(['parameter', 'type-parameter', 'import-binding', 'enum-member']);
@@ -23,6 +24,9 @@ function publicSource(source) {
 
 const claimText = claim => typeof claim === 'string' ? claim : typeof claim?.value === 'string' ? claim.value : claim?.basis?.explanation;
 const recordSummary = record => [record.description, record.summary, record.abstraction?.represents, record.scope?.question, record.existence, record.statement, record.text].map(claimText).find(text => typeof text === 'string' && text.trim() && text !== (record.title ?? record.label));
+
+// Graphify node kinds are coarse; file nodes are labeled with their own basename.
+const graphifyKind = node => node.sourceFile && node.label === node.sourceFile.split('/').at(-1) ? 'file' : node.callable ? 'callable' : node.fileType === 'code' ? 'symbol' : node.fileType ?? 'node';
 
 // Model step IDs are scoped by workflow; the reference record ID keeps that scope.
 const stepId = (workflowRef, id) => JSON.stringify([workflowRef, id]);
@@ -45,6 +49,9 @@ function knowledgeEntries(discovery, keys) {
         entries.push({ sourceKey: source.key, revision: source.revision, recordId: declaration.id, kind: declaration.kind, title: declaration.name, name: declaration.name,
           path: files.get(declaration.fileRef)?.path, span: declaration.span, authored: false });
       }
+    } else if (loaded.graph) {
+      for (const node of loaded.graph.nodes.values()) entries.push({ sourceKey: source.key, revision: source.revision, recordId: node.id, kind: graphifyKind(node), title: node.label,
+        name: node.label.replace(/\(\)$/, ''), ...(node.sourceFile ? { path: node.sourceFile } : {}), ...(node.line ? { line: node.line } : {}), authored: false, foreign: 'graphify' });
     }
   }
   return entries;
@@ -55,12 +62,13 @@ function candidate(entry, matchBasis) {
     ref: encodeReference({ sourceKey: entry.sourceKey, revision: shortRevision(entry.revision), recordId: entry.recordId, kind: entry.kind }),
     kind: entry.kind, title: entry.title, sourceKey: entry.sourceKey, matchBasis,
     ...(entry.authored ? { id: entry.displayId, ...(entry.workflowRef ? { workflowRef: entry.workflowRef } : {}), ...(entry.summary ? { summary: clip(entry.summary) } : {}) } : {}),
-    ...(entry.path ? { location: { path: entry.path, ...(entry.span ? { startLine: entry.span.start.line, endLine: entry.span.end.line } : {}) } } : {}),
+    ...(entry.path ? { location: { path: entry.path, ...(entry.span ? { startLine: entry.span.start.line, endLine: entry.span.end.line } : entry.line ? { startLine: entry.line } : {}) } } : {}),
+    ...(entry.foreign ? { format: entry.foreign } : {}),
   };
 }
 
 function selectSources(discovery, selections) {
-  const available = discovery.sources.filter(s => s.status === 'available' && ['waxwing-model', 'waxwing-source-snapshot'].includes(s.format));
+  const available = discovery.sources.filter(s => s.status === 'available' && READABLE_FORMATS.includes(s.format));
   if (!selections.length) return new Set(available.map(s => s.key));
   const keys = new Set();
   for (const selection of selections) {
@@ -73,8 +81,9 @@ function selectSources(discovery, selections) {
 }
 
 function sourceLimitations(discovery, keys) {
-  return discovery.sources.filter(s => keys.has(s.key) && s.freshness?.gitHead === 'differs-from-current-head')
-    .map(source => `${source.key} was scanned at a different commit than the current HEAD; its records may not describe the current code.`);
+  const graphify = discovery.sources.some(s => keys.has(s.key) && s.format === 'graphify') ? GRAPHIFY_LIMITATIONS : [];
+  return [...graphify, ...discovery.sources.filter(s => keys.has(s.key) && s.freshness?.gitHead === 'differs-from-current-head')
+    .map(source => `${source.key} was ${source.format === 'graphify' ? 'built' : 'scanned'} at a different commit than the current HEAD; its records may not describe the current code.`)];
 }
 
 const PLACEHOLDER = 9999999;
@@ -271,6 +280,46 @@ function sourceRead(root, discovery, source, loaded, decoded, options) {
     semantics: 'Static source occurrences within one snapshot. Candidate targets are not resolved calls or proof of runtime execution.', continuation: 'lines' };
 }
 
+// Graphify nodes carry a file and start line but no digest: excerpts are current file lines, never verified.
+function graphifyRead(root, source, loaded, decoded, options) {
+  const { nodes, edges } = loaded.graph;
+  const node = nodes.get(decoded.recordId);
+  if (!node) return null;
+  const refFor = other => encodeReference({ sourceKey: source.key, revision: shortRevision(source.revision), recordId: other.id, kind: graphifyKind(other) });
+  const describe = (edge, direction) => {
+    const other = nodes.get(direction === 'outgoing' ? edge.to : edge.from);
+    return { ref: refFor(other), kind: graphifyKind(other), title: other.label, direction, relation: edge.relation, ...(edge.confidence ? { confidence: edge.confidence } : {}),
+      ...(edge.context ? { context: edge.context } : {}), ...(other.sourceFile ? { location: { path: other.sourceFile, ...(other.line ? { startLine: other.line } : {}) } } : {}),
+      ...(edge.sourceFile ? { evidence: { path: edge.sourceFile, ...(edge.line ? { line: edge.line } : {}) } } : {}), edgeDirection: edge.direction };
+  };
+  const related = [...edges.filter(e => e.from === node.id).slice(0, 40).map(e => describe(e, 'outgoing')), ...edges.filter(e => e.to === node.id).slice(0, 40).map(e => describe(e, 'incoming'))];
+  const { raw, pathUsable, ...fields } = node;
+  const excerpt = { verification: 'not-attempted' };
+  let lines = [];
+  if (!node.sourceFile) excerpt.reason = 'Graphify recorded no source file for this node.';
+  else {
+    Object.assign(excerpt, { path: node.sourceFile });
+    const directory = options.sourceRoot !== undefined ? path.resolve(options.cwd ?? process.cwd(), options.sourceRoot) : root;
+    let relative = node.sourceFile;
+    if (path.isAbsolute(relative)) { const shown = displayPath(root, relative); relative = path.isAbsolute(shown) ? null : shown; }
+    try {
+      if (!relative || !pathUsable && relative === node.sourceFile) throw new Error('unusable-path');
+      let current = fs.realpathSync(directory);
+      for (const part of relative.split('/')) { current = path.join(current, part); if (fs.lstatSync(current).isSymbolicLink()) throw new Error('symlink'); }
+      const all = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(fs.readFileSync(current)).split(/\r?\n/), context = options.contextLines ?? 3;
+      const first = options.fromLine ?? Math.max(1, (node.line ?? 1) - context);
+      const last = options.fromLine === undefined && node.line ? Math.min(all.length, (node.endLine ?? node.line) + Math.max(context, 30)) : all.length;
+      lines = all.slice(first - 1, last);
+      Object.assign(excerpt, { verification: 'unverified-current-file', mapping: options.sourceRoot !== undefined ? 'command-line --source-root' : 'project root', startLine: first, requestedEndLine: last, totalLines: all.length,
+        reason: 'Graphify records a start line but no content digest or end line. These are current file lines at and after that location.' });
+    } catch (error) {
+      Object.assign(excerpt, { verification: 'unavailable', reason: `Source file could not be read at the mapped root: ${error.code ?? error.message}.`, recovery: 'Pass --source-root for the directory Graphify was run on.' });
+    }
+  }
+  return { record: { kind: graphifyKind(node), format: 'graphify', value: fields, graphify: raw, excerpt }, lists: { lines, related }, views: [],
+    semantics: 'An imported Graphify node and its recorded relationships. Relations and confidence are Graphify’s extraction claims, not verified behavior or execution order.', continuation: 'lines' };
+}
+
 export function readReference(reference, options = {}) {
   const started = Date.now();
   const budget = validBudget(options.budget);
@@ -286,7 +335,7 @@ export function readReference(reference, options = {}) {
     nextActions: [...(extra.currentRef ? [{ operation: 'read', arguments: [extra.currentRef] }] : []), { operation: 'context', reason: 'Repeat the context request against the current artifacts.' }] }, {}, budget, started, discovery);
   if (!source) return stale(`Source ${decoded.sourceKey} is no longer available in this project scope.`);
   const loaded = discovery.loaded.get(source.key);
-  const read = loaded.model ? modelRead(root, source, loaded, decoded, options) : sourceRead(root, discovery, source, loaded, decoded, options);
+  const read = loaded.model ? modelRead(root, source, loaded, decoded, options) : loaded.graph ? graphifyRead(root, source, loaded, decoded, options) : sourceRead(root, discovery, source, loaded, decoded, options);
   if (shortRevision(source.revision) !== decoded.revision) {
     return stale(`${source.key} changed since this reference was issued (revision ${decoded.revision} → ${shortRevision(source.revision)}).`,
       read ? { currentRef: encodeReference({ ...decoded, revision: shortRevision(source.revision) }) } : {});

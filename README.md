@@ -148,7 +148,8 @@ question. You (or the agent) give it concrete input:
 - `--at <path:line>` — a location from grep, a stack trace or an error report. It
   returns the recorded function or class spanning that line, and its file.
 
-Both repeat and combine. Each candidate reports its match basis; `read` returns records, related
+Both repeat and combine. Existing Graphify graphs (`graphify-out/graph.json`) are
+read alongside Waxwing's own models and scans. Each candidate reports its match basis; `read` returns records, related
 references, existing view links and source excerpts (hash-verified, or labeled unverified when the file changed since the scan). Nothing calls
 an LLM or proves an explanation. See [agent entry](docs/agent-entry.md).
 

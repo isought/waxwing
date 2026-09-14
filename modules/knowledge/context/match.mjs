@@ -30,7 +30,7 @@ const kindRank = { component: 9, workflow: 8, step: 6, relationship: 5, document
 function matchEntry(entry, term) {
   const needle = term.toLowerCase(), title = (entry.title ?? '').toLowerCase(), label = `term "${term}"`;
   if (entry.recordId === term) return { score: 100, basis: `${label} equals the record ID` };
-  if (title === needle) return { score: 90, basis: `${label} equals the ${entry.path && !entry.name ? 'path' : 'name'}` };
+  if (title === needle || entry.name?.toLowerCase() === needle) return { score: 90, basis: `${label} equals the ${entry.path && !entry.name ? 'path' : 'name'}` };
   const path = entry.path?.toLowerCase();
   if (path && (path.endsWith('/' + needle) || path.split('/').at(-1).replace(/\.[^.]+$/, '') === needle)) return { score: 80, basis: `${label} matches the file path` };
   if (needle.length >= 3 && title.includes(needle)) return { score: 50, basis: `${label} appears in the ${entry.path && !entry.name ? 'path' : 'name'}` };
@@ -74,12 +74,22 @@ export function locateCandidates(entries, location) {
   const wanted = location.path.toLowerCase();
   const samePath = recorded => { const value = recorded.toLowerCase(); return value === wanted || value.endsWith('/' + wanted) || wanted.endsWith('/' + value); };
   const matches = [], label = `location "${location.text}"`;
-  for (const file of entries.filter(entry => entry.kind === 'file' && samePath(entry.path))) {
+  for (const file of entries.filter(entry => entry.kind === 'file' && !entry.line && samePath(entry.path))) {
     const enclosing = entries.filter(entry => enclosingKinds.has(entry.kind) && entry.sourceKey === file.sourceKey && entry.path === file.path && entry.span
       && entry.span.start.line <= location.line && entry.span.end.line >= location.line)
       .sort((a, b) => (a.span.end.offset - a.span.start.offset) - (b.span.end.offset - b.span.start.offset));
     if (enclosing[0]) matches.push({ entry: enclosing[0], score: 100, matchBasis: [`${label} is inside this ${enclosing[0].kind} (lines ${enclosing[0].span.start.line}–${enclosing[0].span.end.line})`] });
     matches.push({ entry: file, score: 90, matchBasis: [file.status === 'skipped' ? `${label} is in this file, which the scan skipped` : enclosing[0] ? `${label} is in this file` : `${label} is in this file, outside any recorded declaration`] });
+  }
+  // Line-only records (Graphify) have no ranges: report the nearest recorded start at or above the line.
+  for (const file of new Set(entries.filter(entry => entry.line && !entry.span && entry.path && samePath(entry.path)).map(entry => `${entry.sourceKey}\0${entry.path}`))) {
+    const [sourceKey, recorded] = file.split('\0');
+    const inFile = entries.filter(entry => entry.sourceKey === sourceKey && entry.path === recorded && entry.line && !entry.span);
+    const before = inFile.filter(entry => entry.kind !== 'file' && entry.line <= location.line).sort((a, b) => b.line - a.line || (b.kind === 'callable') - (a.kind === 'callable'));
+    const preceding = before.find(entry => entry.kind === 'callable') ?? before[0];
+    if (preceding) matches.push({ entry: preceding, score: 95, matchBasis: [`${label}: nearest preceding recorded ${preceding.kind} (starts line ${preceding.line}); start lines only, so containment is not established`] });
+    const fileNode = inFile.find(entry => entry.kind === 'file');
+    if (fileNode) matches.push({ entry: fileNode, score: 85, matchBasis: [`${label} is in this file`] });
   }
   return matches;
 }
