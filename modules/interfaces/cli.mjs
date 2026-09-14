@@ -16,7 +16,7 @@ const usage = `Waxwing — experimental modular diagram tool
   waxwing doctor [--project directory] [--format json]
   waxwing detach --agent codex|claude [--agent ...] [--project directory] [--dry-run]
   waxwing discover [--project directory] [--workspace workspace.json] [--budget 16384] [--format json]
-  waxwing context --question <text> [--clue text ...] [--source key ...] [--project directory] [--workspace workspace.json] [--environment text] [--revision text] [--budget 16384] [--output file] [--format json]
+  waxwing context (--term text | --at path:line) [--term ... --at ...] [--source key ...] [--project directory] [--workspace workspace.json] [--budget 16384] [--output file] [--format json]
   waxwing read <reference> [--from-line n] [--context-lines 3] [--source-root directory] [--project directory] [--budget 16384] [--output file] [--format json]
   waxwing guide <topic|list>
   waxwing review-update <before-model.json> <updated-model.json>
@@ -40,7 +40,7 @@ build-site publishes a managed directory with an index and one page per view/doc
 build-collection packages separate models or existing sites under one home page, with shared search and explicit links.
 init registers a portable project skill and a short instruction block for the selected agents; detach removes only unchanged managed material.
 doctor reports runtime, host files and readable knowledge without calling a model. discover, context and read are read-only;
-their --budget bounds the entire UTF-8 response in bytes. context matches supplied clues and identifiers lexically; it does not diagnose.
+their --budget bounds the entire UTF-8 response in bytes. context matches explicit --term text against recorded names, paths and model text, and --at path:line against recorded source locations; it does not parse questions or diagnose.
 skill install writes a managed authoring/update skill bound to this package into an explicit destination.
 workspace records evidence and elaboration across locations; affected produces a review queue, not automatic edits.
 query reads recorded model knowledge; its budget bounds result characters, not tokens or the metadata envelope.
@@ -74,7 +74,7 @@ function flags(args, spec, command) {
 async function emitProtocol(operation, packet, output) {
   const text = JSON.stringify(packet) + '\n';
   if (process.env.WAXWING_MEASUREMENT_LOG) {
-    // Opt-in local measurement. Questions, clues, references and source text are never recorded.
+    // Opt-in local measurement. Terms, locations, references and source text are never recorded.
     try {
       const fs = await import('node:fs');
       fs.appendFileSync(process.env.WAXWING_MEASUREMENT_LOG, JSON.stringify({ time: new Date().toISOString(), operation, status: packet.status, protocolVersion: packet.protocolVersion,
@@ -136,15 +136,15 @@ try {
     console.log(JSON.stringify(doctorReport({ project: options.project }), null, 2));
   } else if (['discover', 'context', 'read'].includes(command)) {
     const common = { '--project': 'string', '--workspace': 'string', '--budget': 'integer', '--format': 'format', '--output': 'string' };
-    const spec = command === 'context' ? { ...common, '--question': 'string', '--clue': 'list', '--source': 'list', '--environment': 'string', '--revision': 'string' }
+    const spec = command === 'context' ? { ...common, '--term': 'list', '--at': 'list', '--source': 'list' }
       : command === 'read' ? { ...common, '--from-line': 'integer', '--context-lines': 'integer', '--source-root': 'string' } : common;
     let parsed;
     try { parsed = flags(args, spec, command); } catch (error) { error.status = 'invalid_request'; throw error; }
     const { options, positional } = parsed;
     if (positional.length !== (command === 'read' ? 1 : 0)) throw Object.assign(new Error(command === 'read' ? 'read requires exactly one reference.' : `${command} takes no positional arguments.`), { status: 'invalid_request' });
     const { buildContext, readReference, discoverReport } = await import('../application/context.mjs');
-    const { output, format, question, clue, source, ...rest } = options;
-    const packet = command === 'context' ? buildContext({ ...rest, question, clues: clue, sources: source })
+    const { output, format, term, source, ...rest } = options;
+    const packet = command === 'context' ? buildContext({ ...rest, terms: term, sources: source })
       : command === 'read' ? readReference(positional[0], rest) : discoverReport(rest);
     await emitProtocol(command, packet, output);
   } else if (command === 'guide') {
@@ -272,7 +272,7 @@ try {
 } catch (error) {
   if (['discover', 'context', 'read'].includes(command)) {
     const { CONTEXT_PROTOCOL } = await import('../knowledge/context/protocol.mjs');
-    console.error(JSON.stringify({ protocolVersion: CONTEXT_PROTOCOL, status: error.status ?? (/^(context requires|Question must|Supply at most|Each clue|Budget must|Unrecognized reference|Corrupted reference|--)/.test(error.message) ? 'invalid_request' : 'runtime_error'), message: error.message, diagnostics: error.diagnostics ?? [] }));
+    console.error(JSON.stringify({ protocolVersion: CONTEXT_PROTOCOL, status: error.status ?? (/^(context requires|Supply at most|Each --term|--at requires|Budget must|Unrecognized reference|Corrupted reference|--)/.test(error.message) ? 'invalid_request' : 'runtime_error'), message: error.message, diagnostics: error.diagnostics ?? [] }));
   } else console.error(JSON.stringify({ ok: false, command, ...(args[0] && ['scan','scan-view','scan-check','scan-query','validate','prepare','layout','check-layout','render','recover','build','render-site','build-site','build-connected','build-collection','query'].includes(command) ? {input: path.resolve(args[0])} : {}), message: error.message, diagnostics: error.diagnostics ?? [] }, null, 2));
   process.exitCode = 1;
 }

@@ -11,8 +11,9 @@ Software versions and experimental schema versions are tracked separately.
 - `doctor` reports runtime on PATH, per-host file state, readable knowledge and
   repairs without claiming host uptake.
 - Read-only `discover`, `context` and `read` use protocol `0.1-context`: bounded
-  discovery of models, source snapshots, workspaces and sites; lexical clue
-  matching with explicit match basis; revision-bound references; verified source
+  discovery of models, source snapshots, workspaces and sites; explicit
+  `--term` lookup over recorded names/paths and `--at path:line` lookup of the
+  enclosing recorded declaration, each with a match basis (no question parsing); revision-bound references; verified source
   excerpts, document ranges and existing site links; whole-response byte budgets
   and distinct statuses. Graphify graphs are recognized but not yet read.
 - `guide` and `review-update` are available as top-level commands. The authoring

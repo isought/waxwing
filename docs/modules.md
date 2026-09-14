@@ -144,7 +144,7 @@ modules/
     workflow/      Architecture participation and interaction validation
     documents/     Markdown parsing, resolved links and asset validation
     query/         Bounded retrieval of recorded knowledge
-    context/       Agent context protocol: references, byte budgets and clue matching
+    context/       Agent context protocol: references, byte budgets, term and location matching
     records/       In-memory model update inventories
     workspace/     Manifest validation and potential review scope
     source/        Source snapshot validation, identity and bounded queries

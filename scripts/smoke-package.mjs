@@ -118,7 +118,10 @@ try {
     run(cli, ['scan', project, scanFile, '--source-id', 'agent-project']);
     fs.mkdirSync(path.join(project, '.waxwing'));
     fs.writeFileSync(path.join(project, '.waxwing/config.json'), JSON.stringify({ schemaVersion: '0.1-project-config', artifacts: [scanFile] }));
-    const env = { ...process.env, PATH: `${path.dirname(cli)}${path.delimiter}${process.env.PATH}` };
+    // Other waxwing installations (such as npm link) would make PATH ambiguous; exclude them here.
+    const nodeBin = path.join(temporary, 'node-bin'); fs.mkdirSync(nodeBin); fs.symlinkSync(process.execPath, path.join(nodeBin, 'node'));
+    const otherRuntimes = (process.env.PATH ?? '').split(path.delimiter).filter(dir => dir && !fs.existsSync(path.join(dir, 'waxwing')));
+    const env = { ...process.env, PATH: [path.dirname(cli), nodeBin, ...otherRuntimes].join(path.delimiter) };
     const inProject = (args, cwd = path.join(project, 'src')) => {
       const result = spawnSync(cli, args, { cwd, encoding: 'utf8', env, timeout: 60_000 });
       assert.equal(result.status, 0, `${args.join(' ')}\n${result.stdout}\n${result.stderr}`);
@@ -128,8 +131,8 @@ try {
     assert.equal(setup.status, 'installed'); assert.equal(setup.readiness.runtimeOnPath, 'this-runtime');
     assert.ok(!fs.readFileSync(path.join(project, '.claude/skills/waxwing/SKILL.md'), 'utf8').includes(installed), 'portable skill must not bind the package path');
     const doctor = inProject(['doctor', '--format', 'json']);
-    assert.equal(doctor.status, 'ready'); assert.equal(doctor.knowledge.available, 2);
-    const context = inProject(['context', '--question', 'Why does this API return pending?', '--clue', 'CheckoutService', '--format', 'json']);
+    assert.equal(doctor.status, 'ready', JSON.stringify(doctor.problems)); assert.equal(doctor.knowledge.available, 2);
+    const context = inProject(['context', '--term', 'CheckoutService', '--format', 'json']);
     assert.equal(context.status, 'context_found');
     const reference = context.candidates.find(c => c.location?.path === 'src/checkout.ts').ref;
     const record = inProject(['read', reference, '--format', 'json']);

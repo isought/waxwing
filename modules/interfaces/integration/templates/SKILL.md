@@ -14,11 +14,12 @@ succeeded when the runtime is unavailable.
 ## Investigate behavior
 
 For questions about why or how the repository behaves, read
-[references/investigate.md](references/investigate.md) and start with one
-bounded lookup:
+[references/investigate.md](references/investigate.md). `context` matches
+explicit names and locations; it does not interpret English questions. Turn the
+question into concrete terms first (reading code or grepping if needed):
 
 ```sh
-waxwing context --question "<the user's question>" --format json
+waxwing context --term <name> --at <path:line> --format json
 waxwing read <ref> --format json
 ```
 

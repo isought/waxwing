@@ -6,7 +6,7 @@ import { CONTEXT_PROTOCOL } from '../../knowledge/context/protocol.mjs';
 
 export const packageRoot = fs.realpathSync(fileURLToPath(new URL('../../../', import.meta.url)));
 export const packageInfo = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8'));
-export const TEMPLATE_VERSION = '0.1-integration-template';
+export const TEMPLATE_VERSION = '0.2-integration-template';
 export const RECEIPT_VERSION = '0.1-integration';
 export const RECEIPT = '.waxwing/integration.json';
 export const JOURNAL = '.waxwing/integration.journal.json';
@@ -28,7 +28,7 @@ export function instructionBlock(eol = '\n') {
   const lines = [BEGIN,
     '## Waxwing project knowledge',
     '',
-    'Waxwing can retrieve available project explanations, source relationships and documentation. For a new investigation of repository behavior or system flow, run `waxwing context --question "<question>" --format json` (add `--clue` for a known symbol, path or error), then `waxwing read <ref> --format json`. Check scope and freshness, and verify consequential claims with source or runtime evidence.',
+    'Waxwing can retrieve recorded project explanations, source relationships and documentation. It is a lookup by name and location, not a question answerer. When investigating repository behavior, pass concrete names or grep/stack-trace locations: `waxwing context --term <name> --at <path:line> --format json`, then `waxwing read <ref> --format json`. Check scope and freshness, and verify consequential claims with source or runtime evidence.',
     '',
     `If \`waxwing\` is unavailable (\`${installCommand()}\`) or context is irrelevant, continue with normal tools. Do not repeat an unchanged failed lookup or start a full scan merely to satisfy this instruction. Follow the waxwing skill for detailed operations.`,
     END];

@@ -3,7 +3,7 @@
 Waxwing can make the knowledge a repository already has usable by the coding
 agent you already run. `init` registers a short project instruction block and a
 portable skill for Codex or Claude Code. The agent can then ask a bounded
-`context` question and `read` selected records or verified source excerpts,
+`context` lookup by name or location and `read` selected records or verified source excerpts,
 instead of being handed a directory map.
 
 No command here calls an LLM, fetches remote content, runs a scan, or executes
@@ -72,31 +72,39 @@ session after changing these files.
 The existing explicit `skill install` mode, bound to one package location, remains
 available for personal installations.
 
-## Ask a first question
+## Look up names and locations
 
 ```sh
-waxwing context --question "Why does this API return pending?" --clue CheckoutService --format json
+waxwing context --term CheckoutService --format json
+waxwing context --at src/checkout/service.ts:118 --format json
 waxwing read <ref> --format json
 ```
 
-`context` keeps the question unchanged, discovers readable knowledge, and matches
-supplied clues and identifier-shaped question tokens (backticked text, paths,
-`camelCase`, `snake_case`, dotted names) against record names, paths and authored
-text. Ordinary question words match only authored titles. Each candidate reports
-its `matchBasis`; a match is not evidence that the record explains the behavior.
-There is no semantic retrieval, cross-language expansion or diagnosis.
+`context` is a lookup over recorded knowledge, closer to grep than to a search
+engine. It does not accept or interpret a question; the agent turns the question
+into concrete input:
 
-Options: `--clue` and `--source` (a source key or recorded ID) repeat;
-`--environment` and `--revision` are preserved in `scope`, and a snapshot at a
-different revision is reported rather than substituted; `--workspace` adds a
-workspace manifest; `--output <file>` writes the packet for handoff.
+- `--term <text>` (repeatable) matches, case-insensitively, a record ID, a name or
+  title, a file path ending, part of a name or path, or authored model text.
+  Exact matches rank first. File contents are not searched.
+- `--at <path:line>` (repeatable; `path:line:column` accepted) returns the
+  innermost recorded function, method, class or other type spanning that line,
+  then its file. Paths may be
+  project-relative, absolute, or a trailing part of the recorded path.
+
+At least one `--term` or `--at` is required. Text that exists only inside code,
+such as a CLI command name or an error message, is found with grep first and then
+looked up with `--at`. Each candidate reports its `matchBasis`; a match is not
+evidence that the record explains the behavior.
+
+Other options: `--source` (a source key or recorded ID, repeatable), `--workspace`
+adds a workspace manifest, and `--output <file>` writes the packet for handoff.
 
 | `status` | Meaning |
 | --- | --- |
 | `context_found` | Candidates matched; `nextActions` suggests reads. |
-| `needs_scope` | More than 20 matches across several sources; select `--source` or narrow the clue. |
-| `needs_clue` | No clue or identifier to match; `vocabulary` lists recorded names. |
-| `no_match` | Nothing matched. A miss is not proof of absence. |
+| `needs_scope` | More than 20 matches across several sources; select `--source` or use a more specific term. |
+| `no_match` | Nothing matched; `vocabulary` lists recorded names. A miss is not proof of absence. |
 | `no_context` | No readable knowledge artifacts; `searched` shows what was checked. |
 | `unsupported_input` | Only unreadable formats, such as Graphify, were found. |
 | `budget_too_small` | The response cannot fit; retry with `minimumOutputBytes` or more. |
@@ -162,7 +170,7 @@ current behavior. A scan output must still be written outside the scanned tree.
 
 Every protocol response includes `measurement` (durations, source counts, output
 bytes). Setting `WAXWING_MEASUREMENT_LOG=/path/to/file.jsonl` appends a local
-record of operation, status and measurement for each call. Questions, clues,
+record of operation, status and measurement for each call. Terms, locations,
 references and source text are not recorded, and nothing is sent anywhere.
 
 ## Not yet included

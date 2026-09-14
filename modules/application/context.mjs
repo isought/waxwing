@@ -7,7 +7,7 @@ import { displayPath, resolveProject } from './project.mjs';
 import { modelRecords, recordText } from '../knowledge/query/index.mjs';
 import { sourceNavigation } from '../knowledge/source/navigation.mjs';
 import { CONTEXT_PROTOCOL, budgetTooSmall, decodeReference, encodeReference, fitPacket, packetBytes, validBudget } from '../knowledge/context/protocol.mjs';
-import { contextTerms, contextVocabulary, matchCandidates } from '../knowledge/context/match.mjs';
+import { contextTerms, contextVocabulary, locateCandidates, matchCandidates, parseLocation } from '../knowledge/context/match.mjs';
 import { siteTargetURL } from '../presentation/site/index.mjs';
 
 const MAX_CANDIDATES = 20;
@@ -72,14 +72,9 @@ function selectSources(discovery, selections) {
   return keys;
 }
 
-function sourceLimitations(discovery, keys, requestedRevision) {
-  const limitations = [];
-  for (const source of discovery.sources.filter(s => keys.has(s.key))) {
-    if (source.freshness?.gitHead === 'differs-from-current-head') limitations.push(`${source.key} was scanned at a different commit than the current HEAD; its records may not describe the current code.`);
-    if (requestedRevision && source.format === 'waxwing-source-snapshot' && (!source.gitHead || !source.gitHead.startsWith(requestedRevision))) limitations.push(`${source.key} is not recorded at requested revision ${requestedRevision}; it was not substituted for that revision.`);
-  }
-  if (requestedRevision && ![...keys].some(key => discovery.sources.find(s => s.key === key)?.gitHead?.startsWith(requestedRevision))) limitations.push('No available artifact is recorded at the requested revision.');
-  return limitations;
+function sourceLimitations(discovery, keys) {
+  return discovery.sources.filter(s => keys.has(s.key) && s.freshness?.gitHead === 'differs-from-current-head')
+    .map(source => `${source.key} was scanned at a different commit than the current HEAD; its records may not describe the current code.`);
 }
 
 const PLACEHOLDER = 9999999;
@@ -97,16 +92,24 @@ function finish(envelope, lists, budget, started, discovery, extra = {}) {
 export function buildContext(options = {}) {
   const started = Date.now();
   const budget = validBudget(options.budget);
-  const clues = options.clues ?? [];
-  const terms = contextTerms(options.question, clues);
+  const terms = contextTerms(options.terms ?? []);
+  const locations = (options.at ?? []).map(value => { try { return parseLocation(value); } catch (error) { throw Object.assign(error, { status: 'invalid_request' }); } });
+  if (!terms.length && !locations.length) throw Object.assign(new Error('context requires at least one --term or --at.'), { status: 'invalid_request' });
+  if (locations.length > 20) throw Object.assign(new Error('Supply at most 20 --at locations.'), { status: 'invalid_request' });
   const discovery = discoverKnowledge({ project: options.project, cwd: options.cwd, workspace: options.workspace });
+  const root = discovery.project.root;
+  // Absolute locations inside the project become project-relative, like recorded paths.
+  for (const location of locations) {
+    const absolute = path.resolve(options.cwd ?? process.cwd(), location.path);
+    if (path.isAbsolute(location.path) || fs.existsSync(absolute)) { const shown = displayPath(root, absolute); if (!path.isAbsolute(shown)) location.path = shown; }
+  }
   const keys = selectSources(discovery, options.sources ?? []);
-  const scope = { project: discovery.project.root, projectBasis: discovery.project.basis, environment: options.environment ?? null, requestedRevision: options.revision ?? null, ...(options.sources?.length ? { selectedSources: [...keys] } : {}) };
-  const envelope = { protocolVersion: CONTEXT_PROTOCOL, status: '', question: { text: options.question, clues }, scope };
+  const scope = { project: root, projectBasis: discovery.project.basis, ...(options.sources?.length ? { selectedSources: [...keys] } : {}) };
+  const envelope = { protocolVersion: CONTEXT_PROTOCOL, status: '', request: { terms, at: locations.map(l => l.text) }, scope };
   // Selected sources plus problems worth knowing about; duplicates and layout copies are omitted.
   const sources = discovery.sources.filter(s => keys.has(s.key) || ['invalid', 'unsupported', 'unavailable', 'skipped'].includes(s.status)).map(publicSource);
-  const limitations = ['Candidates are lexical matches over recorded names, paths and text. They do not establish that a record explains the behavior.',
-    'No runtime evidence was supplied; recorded connectivity and static references do not establish execution order.', ...sourceLimitations(discovery, keys, options.revision)];
+  const limitations = ['Candidates are lexical matches over recorded names, paths and text, or recorded items at a location. They do not establish that a record explains the behavior.',
+    'No runtime evidence was supplied; recorded connectivity and static references do not establish execution order.', ...sourceLimitations(discovery, keys)];
 
   if (!keys.size) {
     const unsupported = discovery.status === 'unsupported_input';
@@ -114,30 +117,39 @@ export function buildContext(options = {}) {
     limitations.push(unsupported ? 'Knowledge artifacts were found, but none are readable by this Waxwing version.' : 'No readable Waxwing models or source snapshots were found; absence of artifacts says nothing about the behavior.');
     envelope.searched = discovery.searched;
     return finish({ ...envelope, nextActions: [{ operation: 'use_normal_tools', reason: 'Continue the investigation with ordinary source search and runtime checks.' },
-      { operation: 'scan', optional: true, arguments: [discovery.project.root, '<output outside the project>'], reason: 'Only when a bounded source index would help and the user authorized creating one.' }] },
+      { operation: 'scan', optional: true, arguments: [root, '<output outside the project>'], reason: 'Only when a bounded source index would help and the user authorized creating one.' }] },
     { limitations, sources }, budget, started, discovery);
   }
 
   const entries = knowledgeEntries(discovery, keys);
-  const usable = terms.filter(term => term.origin !== 'word' || entries.some(entry => entry.authored));
-  const { total, matches } = matchCandidates(entries, usable, { limit: MAX_CANDIDATES });
-  const vocabulary = contextVocabulary(entries);
-  if (!total) {
-    const onlyWords = !terms.some(term => term.origin !== 'word');
-    envelope.status = onlyWords ? 'needs_clue' : 'no_match';
-    limitations.push(onlyWords ? 'The question contains no identifier, path or supplied clue to match against source records.' : 'No recorded name, path or text matched; a miss is not proof that the behavior or code does not exist.');
-    return finish({ ...envelope, nextActions: [{ operation: 'context', reason: 'Retry with a --clue naming an error, route, path, symbol or recorded component.', options: { clue: '<clue>' } },
-      { operation: 'use_normal_tools', reason: 'Search the repository directly when no recorded clue applies.' }] },
-    { limitations, terms: usable.map(term => `${term.origin}:${term.text}`), vocabulary, sources }, budget, started, discovery, { matched: 0 });
+  const located = locations.flatMap(location => locateCandidates(entries, location));
+  const lexical = terms.length ? matchCandidates(entries, terms, { limit: MAX_CANDIDATES }) : { total: 0, matches: [] };
+  // Location results come first; a record found both ways appears once.
+  const seen = new Set(), matches = [];
+  for (const m of [...located, ...lexical.matches]) {
+    const id = `${m.entry.sourceKey}\0${m.entry.recordId}`;
+    if (seen.has(id)) { matches.find(x => `${x.entry.sourceKey}\0${x.entry.recordId}` === id).matchBasis.push(...m.matchBasis); continue; }
+    seen.add(id); matches.push({ ...m, matchBasis: [...m.matchBasis] });
   }
+  // Lexical matching may have stopped at its limit; count its unseen matches too.
+  const total = matches.length + lexical.total - lexical.matches.length;
+  if (!matches.length) {
+    envelope.status = 'no_match';
+    if (locations.length) limitations.push('No available source snapshot records a file at the requested location; the file may be outside the scan, or the path may need to be relative to the project.');
+    if (terms.length) limitations.push('No recorded name, path or text matched; a miss is not proof that the behavior or code does not exist.');
+    return finish({ ...envelope, nextActions: [{ operation: 'context', reason: 'Retry once with a name from vocabulary or from the code, or with a path:line found by searching.', options: { term: '<name>', at: '<path:line>' } },
+      { operation: 'use_normal_tools', reason: 'Search the repository directly when no recorded item applies.' }] },
+    { limitations, vocabulary: contextVocabulary(entries), sources }, budget, started, discovery, { matched: 0 });
+  }
+  const shown = matches.slice(0, MAX_CANDIDATES * 2);
   const counts = new Map();
-  for (const m of matches) counts.set(m.entry.sourceKey, (counts.get(m.entry.sourceKey) ?? 0) + 1);
-  const bySource = [...counts].map(([sourceKey, shown]) => ({ sourceKey, shown }));
-  const needsScope = !options.sources?.length && bySource.length > 1 && total > MAX_CANDIDATES;
+  for (const m of shown) counts.set(m.entry.sourceKey, (counts.get(m.entry.sourceKey) ?? 0) + 1);
+  const bySource = [...counts].map(([sourceKey, count]) => ({ sourceKey, shown: count }));
+  const needsScope = !options.sources?.length && bySource.length > 1 && lexical.total > MAX_CANDIDATES;
   envelope.status = needsScope ? 'needs_scope' : 'context_found';
-  envelope.matched = { total, shownBeforeBudget: matches.length, bySource };
-  if (needsScope) limitations.push(`Matches span ${bySource.length} sources and exceed ${MAX_CANDIDATES} candidates; select one with --source or add a narrower clue.`);
-  const candidates = matches.map(m => candidate(m.entry, m.matchBasis));
+  envelope.matched = { total, shownBeforeBudget: shown.length, bySource };
+  if (needsScope) limitations.push(`Matches span ${bySource.length} sources and exceed ${MAX_CANDIDATES} candidates; select one with --source or use a more specific term.`);
+  const candidates = shown.map(m => candidate(m.entry, m.matchBasis));
   const nextActions = [...candidates.slice(0, 3).map(c => ({ operation: 'read', arguments: [c.ref] })),
     ...(needsScope ? bySource.map(s => ({ operation: 'context', options: { source: s.sourceKey } })) : [])];
   return finish({ ...envelope, nextActions }, { limitations, candidates, sources }, budget, started, discovery, { matched: total });
@@ -295,7 +307,7 @@ export function discoverReport(options = {}) {
   const sources = discovery.sources.map(publicSource);
   return finish({ protocolVersion: CONTEXT_PROTOCOL, status: discovery.status, scope: { project: discovery.project.root, projectBasis: discovery.project.basis }, searched: discovery.searched,
     semantics: 'Discovered data sources only. Discovery does not establish relevance, authority or current behavior.',
-    nextActions: discovery.status === 'sources_found' ? [{ operation: 'context', options: { question: '<question>', clue: '<optional clue>' } }] : [{ operation: 'use_normal_tools' }] },
+    nextActions: discovery.status === 'sources_found' ? [{ operation: 'context', options: { term: '<name>', at: '<path:line>' } }] : [{ operation: 'use_normal_tools' }] },
   { sources, diagnostics: discovery.diagnostics }, budget, started, discovery);
 }
 

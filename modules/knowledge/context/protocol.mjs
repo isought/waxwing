@@ -1,7 +1,7 @@
 import { digest } from '../shared/model.mjs';
 
 export const CONTEXT_PROTOCOL = '0.1-context';
-export const CONTEXT_STATUSES = ['context_found', 'needs_scope', 'needs_clue', 'no_context', 'no_match', 'unsupported_input', 'budget_too_small', 'record_found', 'stale_reference', 'invalid_request', 'runtime_error'];
+export const CONTEXT_STATUSES = ['context_found', 'needs_scope', 'no_context', 'no_match', 'unsupported_input', 'budget_too_small', 'record_found', 'stale_reference', 'invalid_request', 'runtime_error'];
 export const DEFAULT_BUDGET = 16384;
 export const MIN_BUDGET = 1024;
 export const MAX_BUDGET = 1048576;

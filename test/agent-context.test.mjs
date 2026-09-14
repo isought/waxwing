@@ -10,7 +10,7 @@ import { discoverKnowledge } from '../modules/application/discover.mjs';
 import { scanRepositoryToFile } from '../modules/application/scan.mjs';
 import { buildSiteFiles } from '../modules/application/pipeline.mjs';
 import { decodeReference, encodeReference } from '../modules/knowledge/context/protocol.mjs';
-import { contextTerms } from '../modules/knowledge/context/match.mjs';
+import { contextTerms, parseLocation } from '../modules/knowledge/context/match.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = path.join(root, 'bin/waxwing.mjs');
@@ -58,13 +58,13 @@ async function fixture() {
   return { base, project, knowledge };
 }
 
-test('question terms keep clues, identifiers and ordinary words distinct', () => {
-  const terms = contextTerms('Why does `querySourceSnapshot` return empty for src/app.ts and user_id in PaymentGateway?', ['E_TIMEOUT']);
-  assert.deepEqual(terms.filter(t => t.origin !== 'word').map(t => `${t.origin}:${t.text}`), ['clue:E_TIMEOUT', 'identifier:querySourceSnapshot', 'identifier:src/app.ts', 'identifier:user_id', 'identifier:PaymentGateway']);
-  assert.ok(terms.some(t => t.origin === 'word' && t.text === 'empty'));
-  assert.ok(!terms.some(t => ['why', 'does', 'return'].includes(t.text)));
-  assert.throws(() => contextTerms(''), /nonempty --question/);
-  assert.throws(() => contextTerms('q', Array(21).fill('x')), /at most 20 clues/);
+test('terms are explicit text and locations accept grep and stack-trace forms', () => {
+  assert.deepEqual(contextTerms([' CheckoutService ', 'checkoutservice', 'src/app.ts']), ['CheckoutService', 'src/app.ts']);
+  assert.throws(() => contextTerms(['']), /nonempty/);
+  assert.throws(() => contextTerms(Array(21).fill('x')), /at most 20 terms/);
+  assert.deepEqual(parseLocation('./src/app.ts:42'), { text: './src/app.ts:42', path: 'src/app.ts', line: 42 });
+  assert.equal(parseLocation('C:\\work\\app.ts:7:13').line, 7);
+  for (const bad of ['src/app.ts', 'src/app.ts:0', 'src/app.ts:x']) assert.throws(() => parseLocation(bad), /path:line/);
 });
 
 test('references are opaque, integrity-checked and revision-bound', () => {
@@ -103,57 +103,71 @@ test('discovery covers native, Graphify-only, both and neither without writing t
     assert.deepEqual(snapshotOf(project), before, 'read-only commands leave project bytes and mtimes unchanged');
 
     assert.equal(discoverReport({ project: foreign }).status, 'unsupported_input');
-    const none = buildContext({ project: empty, question: 'Why does checkout hang?' });
+    const none = buildContext({ project: empty, terms: ['checkout'] });
     assert.equal(none.status, 'no_context');
     assert.equal(none.nextActions[0].operation, 'use_normal_tools');
     assert.ok(none.searched.conventional);
-    const onlyGraphify = buildContext({ project: foreign, question: 'Why does `client` fail?' });
+    const onlyGraphify = buildContext({ project: foreign, terms: ['client'] });
     assert.equal(onlyGraphify.status, 'unsupported_input');
   } finally { fs.rmSync(base, { recursive: true, force: true }); }
 });
 
-test('context matches explicit clues, keeps same-name records separate and respects scope and budgets', async () => {
+test('context matches explicit terms and locations, keeps same-name records separate and respects scope and budgets', async () => {
   const { base, project } = await fixture();
   try {
-    const found = buildContext({ project, question: 'Why does this API return pending?', clues: ['CheckoutService'] });
+    const found = buildContext({ project, terms: ['CheckoutService'] });
     assert.equal(found.status, 'context_found');
-    assert.equal(found.question.text, 'Why does this API return pending?');
+    assert.deepEqual(found.request, { terms: ['CheckoutService'], at: [] });
     const services = found.candidates.filter(c => c.title === 'CheckoutService');
     assert.deepEqual(services.map(c => c.location.path).sort(), ['src/checkout.ts', 'src/legacy/checkout.ts']);
     assert.equal(new Set(services.map(c => c.ref)).size, 2);
-    assert.ok(services.every(c => c.matchBasis[0].includes('supplied clue "CheckoutService" equals the name')));
+    assert.ok(services.every(c => c.matchBasis[0].includes('term "CheckoutService" equals the name')));
     assert.ok(found.limitations.some(l => /do not establish that a record explains/.test(l)));
     assert.deepEqual(found.nextActions[0].operation, 'read');
 
-    const vague = buildContext({ project, question: 'Why is it slow?', sources: [found.sources.find(s => s.format === 'waxwing-source-snapshot').key] });
-    assert.equal(vague.status, 'needs_clue');
-    assert.ok(vague.vocabulary.includes('CheckoutService'));
-    const miss = buildContext({ project, question: 'Why does `RefundProcessor` fail?' });
+    assert.throws(() => buildContext({ project }), /at least one --term or --at/);
+    const miss = buildContext({ project, terms: ['RefundProcessor'] });
     assert.equal(miss.status, 'no_match');
     assert.ok(miss.limitations.some(l => /not proof/.test(l)));
-    const words = buildContext({ project, question: 'How does the stock check work?', sources: ['docs/system/model.json'] });
-    assert.equal(words.status, 'context_found');
-    assert.ok(words.candidates.every(c => c.sourceKey === 'docs/system/model.json'));
-    assert.throws(() => buildContext({ project, question: 'x', sources: ['nope'] }), /Unknown source "nope"/);
+    assert.ok(miss.vocabulary.includes('CheckoutService'));
+    const titles = buildContext({ project, terms: ['stock'], sources: ['docs/system/model.json'] });
+    assert.equal(titles.status, 'context_found');
+    assert.ok(titles.candidates.every(c => c.sourceKey === 'docs/system/model.json'));
+
+    // A location returns the innermost recorded declaration, then its file, without guessing from text.
+    const at = buildContext({ project, at: ['src/checkout.ts:3'] });
+    assert.equal(at.status, 'context_found');
+    assert.deepEqual(at.candidates.slice(0, 2).map(c => [c.kind, c.title]), [['method', 'status'], ['file', 'src/checkout.ts']]);
+    assert.match(at.candidates[0].matchBasis[0], /is inside this method \(lines 2–4\)/);
+    const absolute = buildContext({ project, at: [path.join(project, 'src/checkout.ts') + ':1:5'], terms: ['CheckoutService'] });
+    assert.equal(absolute.candidates[0].title, 'CheckoutService');
+    assert.equal(absolute.candidates[0].location.path, 'src/checkout.ts');
+    assert.equal(absolute.candidates[0].matchBasis.length, 2, 'a record found by location and term appears once with both bases');
+    const outside = buildContext({ project, at: ['src/main.ts:2'] });
+    assert.equal(outside.candidates[0].kind, 'file');
+    assert.match(outside.candidates[0].matchBasis[0], /outside any recorded declaration/);
+    assert.equal(buildContext({ project, at: ['src/missing.ts:1'] }).status, 'no_match');
+    assert.throws(() => buildContext({ project, at: ['src/checkout.ts'] }), /path:line/);
+    assert.throws(() => buildContext({ project, terms: ['x'], sources: ['nope'] }), /Unknown source "nope"/);
 
     for (const budget of [1024, 1500, 2048, 4096, 16384]) {
-      const packet = buildContext({ project, question: 'Why does this API return pending?', clues: ['CheckoutService', 'checkout', 'status'], budget });
+      const packet = buildContext({ project, terms: ['CheckoutService', 'checkout', 'status'], budget });
       assert.ok(bytes(packet) <= budget, `packet ${bytes(packet)} exceeds ${budget}`);
       assert.ok(['context_found', 'needs_scope', 'budget_too_small'].includes(packet.status), packet.status);
       if (packet.status !== 'budget_too_small' && packet.budget.truncated) assert.ok(Object.values(packet.budget.omitted).some(n => n > 0));
     }
-    const tiny = buildContext({ project, question: 'q'.repeat(3000) + ' CheckoutService', budget: 1024 });
+    const tiny = buildContext({ project, terms: Array.from({ length: 20 }, (_, i) => `${'q'.repeat(60)}${i}`), budget: 1024 });
     assert.equal(tiny.status, 'budget_too_small');
     assert.ok(tiny.budget.minimumOutputBytes > 1024);
     assert.ok(bytes(tiny) <= 1024);
-    assert.throws(() => buildContext({ project, question: 'q', budget: 10 }), /Budget must be/);
+    assert.throws(() => buildContext({ project, terms: ['q'], budget: 10 }), /Budget must be/);
   } finally { fs.rmSync(base, { recursive: true, force: true }); }
 });
 
 test('reads return verified excerpts, related references and existing view links; changes are explicit', async () => {
   const { base, project, knowledge } = await fixture();
   try {
-    const found = buildContext({ project, question: 'Why pending?', clues: ['CheckoutService'] });
+    const found = buildContext({ project, terms: ['CheckoutService'] });
     const service = found.candidates.find(c => c.location?.path === 'src/checkout.ts');
     const read = readReference(service.ref, { project });
     assert.equal(read.status, 'record_found');
@@ -170,7 +184,7 @@ test('reads return verified excerpts, related references and existing view links
     assert.ok(bytes(partial) <= 1924);
     if (partial.nextActions) assert.equal(readReference(service.ref, { project, fromLine: partial.nextActions[0].options.fromLine }).status, 'record_found');
 
-    const component = buildContext({ project, question: 'What does Checkout do?', clues: ['checkout'], sources: ['docs/system/model.json'] }).candidates.find(c => c.kind === 'component' && c.id === 'checkout');
+    const component = buildContext({ project, terms: ['checkout'], sources: ['docs/system/model.json'] }).candidates.find(c => c.kind === 'component' && c.id === 'checkout');
     const modelRead = readReference(component.ref, { project });
     assert.equal(modelRead.status, 'record_found');
     assert.ok(modelRead.views.some(v => v.path === 'docs/system/site/graphs/services.html' && v.fragment === 'record-checkout'));
@@ -213,25 +227,25 @@ test('reads return verified excerpts, related references and existing view links
   } finally { fs.rmSync(base, { recursive: true, force: true }); }
 });
 
-test('CLI protocol commands emit compact JSON, structured errors, handoff files and opt-in measurement without question text', async () => {
+test('CLI protocol commands emit compact JSON, structured errors, handoff files and opt-in measurement without request text', async () => {
   const { base, project } = await fixture();
   try {
     const log = path.join(base, 'measure.jsonl'), output = path.join(base, 'handoff', 'context.json');
-    const secret = 'Why does SECRET-CUSTOMER-ACME see pending?';
-    const result = run(path.join(project, 'src'), ['context', '--question', secret, '--clue', 'CheckoutService', '--format', 'json', '--output', output], { WAXWING_MEASUREMENT_LOG: log });
+    const result = run(path.join(project, 'src'), ['context', '--term', 'CheckoutService', '--at', 'src/checkout.ts:3', '--format', 'json', '--output', output], { WAXWING_MEASUREMENT_LOG: log });
     assert.equal(result.status, 0, result.stderr);
     const summary = JSON.parse(result.stdout);
     assert.equal(summary.status, 'context_found');
-    assert.equal(JSON.parse(fs.readFileSync(output, 'utf8')).question.text, secret);
+    assert.deepEqual(JSON.parse(fs.readFileSync(output, 'utf8')).request, { terms: ['CheckoutService'], at: ['src/checkout.ts:3'] });
     const entries = fs.readFileSync(log, 'utf8');
     assert.match(entries, /"operation":"context"/);
-    assert.ok(!entries.includes('SECRET') && !entries.includes('CheckoutService'));
+    assert.ok(!entries.includes('CheckoutService') && !entries.includes('checkout.ts'));
 
-    const direct = run(project, ['context', '--question', 'Why?', '--clue', 'CheckoutService']);
+    const direct = run(project, ['context', '--term', 'CheckoutService']);
     assert.equal(direct.stdout.trim().split('\n').length, 1);
-    const bad = run(project, ['context', '--question', 'Why?', '--budget', 'lots']);
+    const bad = run(project, ['context', '--term', 'x', '--budget', 'lots']);
     assert.equal(bad.status, 1);
     assert.equal(JSON.parse(bad.stderr).status, 'invalid_request');
+    assert.equal(JSON.parse(run(project, ['context', '--question', 'Why?']).stderr).status, 'invalid_request');
     const unknown = run(project, ['read', 'wx1.bad']);
     assert.equal(JSON.parse(unknown.stderr).status, 'invalid_request');
     assert.equal(run(project, ['discover', '--format', 'yaml']).status, 1);

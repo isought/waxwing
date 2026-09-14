@@ -131,12 +131,24 @@ against the models, source snapshots and sites the repository already has:
 ```sh
 node bin/waxwing.mjs init --agent codex --agent claude
 node bin/waxwing.mjs doctor --format json
-node bin/waxwing.mjs context --question "Why does this API return pending?" --clue CheckoutService
+node bin/waxwing.mjs context --term CheckoutService
+node bin/waxwing.mjs context --at src/checkout/service.ts:118
 ```
 
 `init` adds a short marked instruction block and a portable project skill, and
-`detach` removes them again without touching unrelated text. `context` returns
-lexical candidates with their match basis; `read` returns records, related
+`detach` removes them again without touching unrelated text.
+
+**`context` is a lookup, not a question answerer.** It never reads an English
+question. You (or the agent) give it concrete input:
+
+- `--term <text>` — a name or path, such as a function, class, file, component or
+  workflow. It matches recorded IDs, names, file paths and authored model text,
+  case-insensitively, with exact matches first. It does not search inside file
+  contents; use grep for that.
+- `--at <path:line>` — a location from grep, a stack trace or an error report. It
+  returns the recorded function or class spanning that line, and its file.
+
+Both repeat and combine. Each candidate reports its match basis; `read` returns records, related
 references, existing view links and hash-verified source excerpts. Nothing calls
 an LLM or proves an explanation. See [agent entry](docs/agent-entry.md).
 

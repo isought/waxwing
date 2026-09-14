@@ -1,59 +1,41 @@
-// Deterministic lexical matching. Supplied clues and identifier-shaped question
-// tokens can match names, paths and recorded text; ordinary question words only
-// match authored titles. A match is a retrieval basis, never a relevance proof.
+// Deterministic lexical matching over recorded names, paths and authored text.
+// Terms are supplied explicitly; nothing is extracted from prose. A match is a
+// retrieval basis, never a relevance proof.
 
-const stopwords = new Set(('a an and are as at be because but by can could did do does doing done for from get gets got had has have how i if in into is it its '
-  + 'me my no not of on or our should so some than that the their them then there these they this those to up us was we were what when where which '
-  + 'while who why will with would you your after before during happen happens happening returned returns return result results wrong fails failing '
-  + 'failed error errors issue problem work works working api value values call calls called using use used').split(' '));
+export const MAX_TERMS = 20;
+export const MAX_TERM_CHARACTERS = 500;
 
-export const MAX_QUESTION_CHARACTERS = 4000;
-export const MAX_CLUES = 20;
-export const MAX_CLUE_CHARACTERS = 500;
+export function contextTerms(terms = []) {
+  if (!Array.isArray(terms) || terms.length > MAX_TERMS) throw new Error(`Supply at most ${MAX_TERMS} terms.`);
+  const result = [], seen = new Set();
+  for (const term of terms) {
+    if (typeof term !== 'string' || !term.trim() || term.length > MAX_TERM_CHARACTERS) throw new Error(`Each --term must be nonempty text of at most ${MAX_TERM_CHARACTERS} characters.`);
+    const text = term.trim(), key = text.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); result.push(text); }
+  }
+  return result;
+}
 
-export function contextTerms(question, clues = []) {
-  if (typeof question !== 'string' || !question.trim()) throw new Error('context requires a nonempty --question.');
-  if (question.length > MAX_QUESTION_CHARACTERS) throw new Error(`Question must be at most ${MAX_QUESTION_CHARACTERS} characters.`);
-  if (!Array.isArray(clues) || clues.length > MAX_CLUES) throw new Error(`Supply at most ${MAX_CLUES} clues.`);
-  const terms = [], seen = new Set();
-  const add = (text, origin) => {
-    const value = text.trim(), key = value.toLowerCase();
-    if (!value || seen.has(key)) return;
-    seen.add(key); terms.push({ text: value, origin });
-  };
-  for (const clue of clues) {
-    if (typeof clue !== 'string' || !clue.trim() || clue.length > MAX_CLUE_CHARACTERS) throw new Error(`Each clue must be nonempty text of at most ${MAX_CLUE_CHARACTERS} characters.`);
-    add(clue, 'clue');
-  }
-  const quoted = [...question.matchAll(/`([^`\n]{2,200})`/g)].map(match => match[1]);
-  for (const value of quoted) add(value, 'identifier');
-  const withoutQuoted = question.replace(/`[^`\n]*`/g, ' ');
-  for (const token of withoutQuoted.match(/[A-Za-z_$@][\w$@-]*(?:[./:#][\w$@-]+)+|[A-Za-z_$][\w$]*\(\)|[\w$]*[a-z0-9][A-Z][\w$]*|[A-Za-z0-9]+_[\w$]+/g) ?? []) {
-    add(token.replace(/\(\)$/, '').replace(/[.:#]+$/, ''), 'identifier');
-  }
-  for (const word of withoutQuoted.toLowerCase().match(/[a-z][a-z0-9-]{2,}/g) ?? []) {
-    if (!stopwords.has(word) && !seen.has(word)) add(word, 'word');
-  }
-  return terms;
+// "path:line" or "path:line:column", as printed by grep -n, compilers and stack traces.
+export function parseLocation(value) {
+  const match = typeof value === 'string' && value.trim().match(/^(.+?):(\d+)(?::\d+)?$/);
+  if (!match || Number(match[2]) < 1) throw new Error(`--at requires path:line, for example src/app.ts:42 (received ${JSON.stringify(value)}).`);
+  const file = match[1].replace(/\\/g, '/').replace(/^(\.\/)+/, '');
+  return { text: value.trim(), path: file, line: Number(match[2]) };
 }
 
 const kindRank = { component: 9, workflow: 8, step: 6, relationship: 5, document: 7, group: 4, graph: 4, block: 3, note: 3, source: 2, model: 1,
   file: 7, class: 8, function: 8, method: 8, interface: 7, type: 6, enum: 6, module: 6, namespace: 5, variable: 3, property: 2, parameter: 1 };
-const originLabel = { clue: 'supplied clue', identifier: 'identifier in question', word: 'question word' };
-const words = text => new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
 
 function matchEntry(entry, term) {
-  const needle = term.text.toLowerCase(), title = (entry.title ?? '').toLowerCase(), label = originLabel[term.origin];
-  if (term.origin === 'word') {
-    return entry.authored && words(title).has(needle) ? { score: 30, basis: `${label} "${term.text}" appears in the recorded title` } : null;
-  }
-  if (entry.recordId === term.text) return { score: 100, basis: `${label} "${term.text}" equals the record ID` };
-  if (title === needle) return { score: 90, basis: `${label} "${term.text}" equals the ${entry.path && !entry.name ? 'path' : 'name'}` };
+  const needle = term.toLowerCase(), title = (entry.title ?? '').toLowerCase(), label = `term "${term}"`;
+  if (entry.recordId === term) return { score: 100, basis: `${label} equals the record ID` };
+  if (title === needle) return { score: 90, basis: `${label} equals the ${entry.path && !entry.name ? 'path' : 'name'}` };
   const path = entry.path?.toLowerCase();
-  if (path && (path.endsWith('/' + needle) || path.split('/').at(-1).replace(/\.[^.]+$/, '') === needle)) return { score: 80, basis: `${label} "${term.text}" matches the file path` };
-  if (needle.length >= 3 && title.includes(needle)) return { score: 50, basis: `${label} "${term.text}" appears in the ${entry.path && !entry.name ? 'path' : 'name'}` };
-  if (needle.length >= 3 && path?.includes(needle)) return { score: 40, basis: `${label} "${term.text}" appears in the file path` };
-  if (entry.authored && needle.length >= 3 && entry.text?.toLowerCase().includes(needle)) return { score: 20, basis: `${label} "${term.text}" appears in recorded text` };
+  if (path && (path.endsWith('/' + needle) || path.split('/').at(-1).replace(/\.[^.]+$/, '') === needle)) return { score: 80, basis: `${label} matches the file path` };
+  if (needle.length >= 3 && title.includes(needle)) return { score: 50, basis: `${label} appears in the ${entry.path && !entry.name ? 'path' : 'name'}` };
+  if (needle.length >= 3 && path?.includes(needle)) return { score: 40, basis: `${label} appears in the file path` };
+  if (entry.authored && needle.length >= 3 && entry.text?.toLowerCase().includes(needle)) return { score: 20, basis: `${label} appears in recorded text` };
   return null;
 }
 
@@ -71,7 +53,7 @@ export function matchCandidates(entries, terms, { limit = 50 } = {}) {
   return { total: matched.length, matches: matched.slice(0, limit) };
 }
 
-// A small vocabulary lets an agent choose a clue that exists in the available records.
+// A small vocabulary lets an agent choose a term that exists in the available records.
 export function contextVocabulary(entries, { limit = 40 } = {}) {
   const preferred = entries.filter(entry => entry.authored ? ['component', 'workflow', 'document'].includes(entry.kind) : ['class', 'function', 'method', 'interface'].includes(entry.kind));
   const seen = new Set(), vocabulary = [];
@@ -82,4 +64,22 @@ export function contextVocabulary(entries, { limit = 40 } = {}) {
     if (vocabulary.length >= limit) break;
   }
   return vocabulary;
+}
+
+// Recorded items at a location: the innermost enclosing callable or type spanning the
+// line, then its file. Variables and properties on that line are not enclosing scopes.
+const enclosingKinds = new Set(['function', 'method', 'class', 'interface', 'type-alias', 'enum', 'namespace', 'table']);
+// Paths match exactly or by a whole-segment suffix in either direction.
+export function locateCandidates(entries, location) {
+  const wanted = location.path.toLowerCase();
+  const samePath = recorded => { const value = recorded.toLowerCase(); return value === wanted || value.endsWith('/' + wanted) || wanted.endsWith('/' + value); };
+  const matches = [], label = `location "${location.text}"`;
+  for (const file of entries.filter(entry => entry.kind === 'file' && samePath(entry.path))) {
+    const enclosing = entries.filter(entry => enclosingKinds.has(entry.kind) && entry.sourceKey === file.sourceKey && entry.path === file.path && entry.span
+      && entry.span.start.line <= location.line && entry.span.end.line >= location.line)
+      .sort((a, b) => (a.span.end.offset - a.span.start.offset) - (b.span.end.offset - b.span.start.offset));
+    if (enclosing[0]) matches.push({ entry: enclosing[0], score: 100, matchBasis: [`${label} is inside this ${enclosing[0].kind} (lines ${enclosing[0].span.start.line}–${enclosing[0].span.end.line})`] });
+    matches.push({ entry: file, score: 90, matchBasis: [file.status === 'skipped' ? `${label} is in this file, which the scan skipped` : enclosing[0] ? `${label} is in this file` : `${label} is in this file, outside any recorded declaration`] });
+  }
+  return matches;
 }
