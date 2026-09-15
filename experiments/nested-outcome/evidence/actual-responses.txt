@@ -1,0 +1,4 @@
+A17 409 {"code":"ACCOUNT_CAPACITY","account":"A17"}
+B29 201 {"account":"B29","currency":"EUR","x":12960}
+C31 201 {"account":"C31","currency":"EUR","x":12960}
+D44 201 {"account":"D44","currency":"EUR","x":12960}

@@ -1,0 +1,345 @@
+[
+  {
+    "type": "tool_use",
+    "id": "toolu_01Ctnn3yaiXJvnxXstnHDD6Z",
+    "name": "Glob",
+    "input": {
+      "pattern": "**/*",
+      "path": "/Users/david/learning/nested-outcome-experiment/session-02"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01Bw3vhWLJ8cVsEs4knRssKh",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/api/QuoteEndpoint.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01KsVCCoMVGhb1ZzgZjPVFUq",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/Bootstrap.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01CnMcdpnToTdev8bAGH5mtX",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/config/accounts.properties"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01E2NpZNwbkok2jv1i8JGbZ1",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/config/application.properties"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01TY2tG5qNR6MYiz6Na7bNBr",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/config/exposure.properties"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01Wwu47ppmjT7VgMG2nZZGQj",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/pricing/Amounts.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_012XsaYiEgNf9EaLHbGYjPGE",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/pricing/Discounts.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01C8gxEKzNSCn8WFmgRyqm9t",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/pricing/Delivery.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_015hZENkStcbtiNUqqRweG9p",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/pricing/Totals.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01CmSfXFNjn3By5gacBwAagz",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/pricing/TaxTable.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01BRPTQzABP2GDygHG2QHof7",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/PostingRegistry.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01KAz93cBdfS6UXGxMPEzZ9J",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/AccountDirectory.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01Lxb643aDwzovdmGw116t1S",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/Allocations.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01PcdXPVy2A3vQCfLiYc7ih8",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/ExposureBook.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01CU4rJX2M6Jk65pAm3qdbTe",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/DeferredPosting.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01KMTmTsDWhDe6r6YCPUqQJc",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/Bucket.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_016sZcRFrP1RsJn5p3Q3X3pu",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/CapacityExceeded.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01MkcHAdn4NUWzHGY5SN8oyN",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/api/ResponseMapper.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01WKG1aMuRJUBEBNCDiPa1Gd",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/model/Draft.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_012wteZBT6JnMS1ALRN37DgD",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/model/Request.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01Ybg4KhwBoqugknwqG2wxEA",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/store/PreparedQuotes.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_0119mQGvHdYJX1BM58LqXVbB",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/store/QuoteStore.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01LcjDyvP381pPPzyGvi8rCA",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/service/QuoteService.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_013e6Vov7Kt79HkXnF7AEow7",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/flow/Route.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01FQ9MeYWVqLurzeEErkaBeU",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/flow/RouteFactory.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01GPSUuif17J5VT1aR6ub9Kg",
+    "name": "Glob",
+    "input": {
+      "pattern": "**/*.java",
+      "path": "/Users/david/learning/nested-outcome-experiment/session-02"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01M8c7PLtGhnAEZYT7bYjZz5",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/PrepaidPosting.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01CLFpjqv2LMvaKHTknyuGZt",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/store/Recording.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_019h9QvBYJAf4nwooXzXinRZ",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/store/StoreConflict.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01GUiyK3Ge6QDEEeY9PSmQs6",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/nested-outcome-experiment/session-02/src/quote/accounts/Account.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  }
+]

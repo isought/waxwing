@@ -1,0 +1,8 @@
+Using this checkout's configuration, what exact status and JSON body does QuoteEndpoint.post return for each request below? Each request runs independently against a fresh endpoint constructed by Bootstrap.create(Path.of(".")); state is not shared between requests. Monetary values are integer minor units.
+
+new Request("A17", 10, 1200, "EUR")
+new Request("B29", 10, 1200, "EUR")
+new Request("C31", 10, 1200, "EUR")
+new Request("D44", 10, 1200, "EUR")
+
+Explain the outcome with source file/line evidence. Use only ordinary file listing, text search and file reading in this checkout. Do not execute code or tests, edit files, use other agents, or access outside directories. Do not assume any unprovided configuration. Keep your final answer under 800 words.

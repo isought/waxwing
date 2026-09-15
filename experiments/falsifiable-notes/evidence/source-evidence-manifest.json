@@ -1,0 +1,46 @@
+[
+  {
+    "path": "core/broadleaf-framework/src/main/java/org/broadleafcommerce/core/pricing/service/workflow/TotalActivity.java",
+    "sha256": "0f0f9d5b26a3e2087abf424c4040fd867aef8059727cc1253f5b77eaba2f4716"
+  },
+  {
+    "path": "core/broadleaf-framework/src/main/java/org/broadleafcommerce/core/order/domain/OrderImpl.java",
+    "sha256": "333aa6c2518df1cd54130ef433f65bf48c5a570082efccb2c0c93eef0c18c4d8"
+  },
+  {
+    "path": "core/broadleaf-framework/src/main/java/org/broadleafcommerce/core/pricing/service/workflow/AdjustOrderPaymentsActivity.java",
+    "sha256": "48c0bf3a5303338ec2b90365dddfde3ee1d896dd0d4e10c4b26b70a3b5017551"
+  },
+  {
+    "path": "core/broadleaf-framework/src/main/java/org/broadleafcommerce/core/payment/service/OrderToPaymentRequestDTOServiceImpl.java",
+    "sha256": "1353c9e30091b6ba728096f3be7c515515b1bf4d95d3ab1f62bb9b1b0a687005"
+  },
+  {
+    "path": "core/broadleaf-framework/src/main/java/org/broadleafcommerce/core/checkout/service/strategy/OrderPaymentConfirmationStrategyImpl.java",
+    "sha256": "1bd14d64663515b39fd12451238fe5a6fcea24bf61c4e6b3d8899ccdc8e36a57"
+  },
+  {
+    "path": "core/broadleaf-framework/src/main/java/org/broadleafcommerce/core/checkout/service/workflow/ValidateAndConfirmPaymentActivity.java",
+    "sha256": "b323f9ca0cac4ee3062d8a713414b736a074feacf306b13a679ac245bd35af39"
+  },
+  {
+    "path": "core/broadleaf-framework-web/src/main/java/org/broadleafcommerce/core/web/expression/checkout/CheckoutFormVariableExpression.java",
+    "sha256": "6ae976e99612d3705c2951cd0427e1fdda42d57da9049c702c9bd7135a70b5d9"
+  },
+  {
+    "path": "core/broadleaf-framework-web/src/main/java/org/broadleafcommerce/core/web/controller/checkout/BroadleafCheckoutController.java",
+    "sha256": "f46457f68f9d9dfc5d5404659af9f94287f8fc01335ba95e38466cc339890234"
+  },
+  {
+    "path": "core/broadleaf-framework/src/test/groovy/org/broadleafcommerce/core/spec/pricing/service/workflow/TotalActivitySpec.groovy",
+    "sha256": "484503e4a796934f708722ec4f09540f9b9d80e83ff12755d7f46f0e61d8ae5b"
+  },
+  {
+    "path": "integration/src/test/java/org/broadleafcommerce/core/pricing/service/PricingTest.java",
+    "sha256": "68ab8b30372584c81b1c93a47b2075614243d22d511b70c8e84d32a71f9d47c7"
+  },
+  {
+    "path": "core/broadleaf-framework/src/main/resources/bl-framework-applicationContext-workflow.xml",
+    "sha256": "ac5291f0420a6f16a120305eeeafa9b861f804ba158618330bc2d566084aabc7"
+  }
+]
