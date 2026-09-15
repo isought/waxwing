@@ -12,6 +12,14 @@ const usage = `Waxwing — experimental modular diagram tool
   waxwing build-site <model.json> <output-directory> [--group perspective-id] [--direction RIGHT|DOWN]
   waxwing build-connected <model.json> <scan.json> <links.json|-> <output-directory> [--source-root directory] [--direction RIGHT|DOWN]
   waxwing build-collection <collection.json> <output-directory>
+  waxwing init --agent codex|claude [--agent ...] [--project directory] [--dry-run]
+  waxwing doctor [--project directory] [--format json]
+  waxwing detach --agent codex|claude [--agent ...] [--project directory] [--dry-run]
+  waxwing discover [--project directory] [--workspace workspace.json] [--budget bytes] [--format json]
+  waxwing context (--term text | --at path:line) [--term ... --at ...] [--source key ...] [--project directory] [--workspace workspace.json] [--budget bytes] [--output file] [--format json]
+  waxwing read <reference> [--from-line n] [--context-lines 3] [--source-root directory] [--project directory] [--budget bytes] [--output file] [--format json]
+  waxwing guide <topic|list>
+  waxwing review-update <before-model.json> <updated-model.json>
   waxwing skill install <skill-directory>
   waxwing scan <source-directory> <scan.json> [--source-id id] [--max-files 10000] [--max-file-bytes 1048576] [--max-total-bytes 33554432]
   waxwing scan-view <scan.json> <source.html>
@@ -30,6 +38,9 @@ An anchor is a reading preference, not a workflow entry or execution-order claim
 The layout stage is optional. Render accepts a compatible, independently authored JSON 2.
 build-site publishes a managed directory with an index and one page per view/document.
 build-collection packages separate models or existing sites under one home page, with shared search and explicit links.
+init registers a portable project skill and a short instruction block for the selected agents; detach removes only unchanged managed material.
+doctor reports runtime, host files and readable knowledge without calling a model. discover, context and read are read-only;
+their --budget bounds the entire UTF-8 response in bytes. context matches explicit --term text against recorded names, paths and model text, and --at path:line against recorded source locations; it does not parse questions or diagnose.
 skill install writes a managed authoring/update skill bound to this package into an explicit destination.
 workspace records evidence and elaboration across locations; affected produces a review queue, not automatic edits.
 query reads recorded model knowledge; its budget bounds result characters, not tokens or the metadata envelope.
@@ -38,6 +49,47 @@ validate, prepare, layout, build, and build-site load explicitly registered Mark
 scan indexes JavaScript/TypeScript source into a separate snapshot; write its output outside the source directory.
 scan-query reads that snapshot; query continues to read authored architecture/sequence models.
 No command executes scanned code, fetches source locators, or calls an LLM.`;
+
+// Flag parsing for the agent-entry commands: spec maps flag names to value kinds.
+function flags(args, spec, command) {
+  const options = {}, positional = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) { positional.push(arg); continue; }
+    const kind = spec[arg];
+    if (!kind) throw new Error(`Unknown ${command} option ${arg}.`);
+    const key = arg.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    if (kind === 'boolean') { if (options[key]) throw new Error(`Repeated ${arg}.`); options[key] = true; continue; }
+    const value = args[++i];
+    if (value === undefined) throw new Error(`Missing value for ${arg}.`);
+    if (kind === 'list') { (options[key] ??= []).push(value); continue; }
+    if (Object.hasOwn(options, key)) throw new Error(`Repeated ${arg}.`);
+    if (kind === 'format') { if (value !== 'json') throw new Error('--format supports json.'); options[key] = value; continue; }
+    options[key] = kind === 'integer' ? (/^-?\d+$/.test(value) ? Number(value) : NaN) : value;
+    if (kind === 'integer' && !Number.isInteger(options[key])) throw new Error(`${arg} requires an integer.`);
+  }
+  return { options, positional };
+}
+
+async function emitProtocol(operation, packet, output) {
+  const text = JSON.stringify(packet) + '\n';
+  if (process.env.WAXWING_MEASUREMENT_LOG) {
+    // Opt-in local measurement. Terms, locations, references and source text are never recorded.
+    try {
+      const fs = await import('node:fs');
+      fs.appendFileSync(process.env.WAXWING_MEASUREMENT_LOG, JSON.stringify({ time: new Date().toISOString(), operation, status: packet.status, protocolVersion: packet.protocolVersion,
+        measurement: packet.measurement ?? null, truncated: packet.budget?.truncated ?? null, candidates: packet.candidates?.length ?? null }) + '\n');
+    } catch { /* Measurement must never change the command result. */ }
+  }
+  if (output === undefined) { process.stdout.write(text); return; }
+  const fs = await import('node:fs'), { randomUUID } = await import('node:crypto');
+  const target = path.resolve(output);
+  if (fs.lstatSync(target, { throwIfNoEntry: false })?.isSymbolicLink()) throw new Error('--output must not be a symlink.');
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const temp = path.join(path.dirname(target), `.waxwing-context-${randomUUID()}.tmp`);
+  try { fs.writeFileSync(temp, text); fs.renameSync(temp, target); } finally { fs.rmSync(temp, { force: true }); }
+  console.log(JSON.stringify({ status: packet.status, output: target, bytes: Buffer.byteLength(text) }));
+}
 
 function layoutArgs(args) {
   const options = {};
@@ -61,6 +113,50 @@ function layoutArgs(args) {
 const [command, ...args] = process.argv.slice(2);
 try {
   if (!command || ['--help', '-h', 'help'].includes(command)) console.log(usage);
+  else if (command === '--version' || command === 'version') {
+    const { packageInfo } = await import('./integration/templates.mjs');
+    const { CONTEXT_PROTOCOL } = await import('../knowledge/context/protocol.mjs');
+    console.log(JSON.stringify({ package: packageInfo.name, version: packageInfo.version, protocolVersion: CONTEXT_PROTOCOL }));
+  } else if (command === 'init' || command === 'detach') {
+    const { options, positional } = flags(args, { '--agent': 'list', '--project': 'string', '--dry-run': 'boolean', '--format': 'format' }, command);
+    if (positional.length) throw new Error(`${command} takes no positional arguments; use --project for the directory.`);
+    const { initIntegration, detachIntegration } = await import('./integration/lifecycle.mjs');
+    const result = (command === 'init' ? initIntegration : detachIntegration)({ agents: options.agent, project: options.project, dryRun: options.dryRun });
+    if (command === 'init' && result.ok && result.status !== 'dry-run') {
+      const { runtimeReport } = await import('./integration/doctor.mjs');
+      const runtime = runtimeReport();
+      result.readiness = { runtimeOnPath: runtime.pathResolvesTo, pathAmbiguous: runtime.pathAmbiguous, hostUptake: 'untested', ...(runtime.pathResolvesTo === 'this-runtime' ? {} : { repair: 'Install a compatible runtime so `waxwing` on PATH provides these commands, then run waxwing doctor.' }) };
+    }
+    console.log(JSON.stringify(result, null, 2));
+    process.exitCode = result.ok ? 0 : 1;
+  } else if (command === 'doctor') {
+    const { options, positional } = flags(args, { '--project': 'string', '--format': 'format' }, command);
+    if (positional.length) throw new Error('doctor takes no positional arguments.');
+    const { doctorReport } = await import('./integration/doctor.mjs');
+    console.log(JSON.stringify(doctorReport({ project: options.project }), null, 2));
+  } else if (['discover', 'context', 'read'].includes(command)) {
+    const common = { '--project': 'string', '--workspace': 'string', '--budget': 'integer', '--format': 'format', '--output': 'string' };
+    const spec = command === 'context' ? { ...common, '--term': 'list', '--at': 'list', '--source': 'list' }
+      : command === 'read' ? { ...common, '--from-line': 'integer', '--context-lines': 'integer', '--source-root': 'string' } : common;
+    let parsed;
+    try { parsed = flags(args, spec, command); } catch (error) { error.status = 'invalid_request'; throw error; }
+    const { options, positional } = parsed;
+    if (positional.length !== (command === 'read' ? 1 : 0)) throw Object.assign(new Error(command === 'read' ? 'read requires exactly one reference.' : `${command} takes no positional arguments.`), { status: 'invalid_request' });
+    const { buildContext, readReference, discoverReport } = await import('../application/context.mjs');
+    const { output, format, term, source, ...rest } = options;
+    const packet = command === 'context' ? buildContext({ ...rest, terms: term, sources: source })
+      : command === 'read' ? readReference(positional[0], rest) : discoverReport(rest);
+    await emitProtocol(command, packet, output);
+  } else if (command === 'guide') {
+    if (args.length !== 1) throw new Error('guide requires one topic, or list.');
+    const { readGuide } = await import('./skill/guide.mjs');
+    const { packageRoot } = await import('./integration/templates.mjs');
+    console.log(readGuide(packageRoot, args[0]));
+  } else if (command === 'review-update') {
+    if (args.length !== 2) throw new Error('review-update requires baseline and updated model paths.');
+    const { reviewUpdate } = await import('../application/review-update.mjs');
+    console.log(JSON.stringify({ ok: true, ...reviewUpdate(args[0], args[1]) }, null, 2));
+  }
   else if (command === 'scan') {
     if (args.length < 2 || (args.length - 2) % 2) throw new Error('scan requires a source directory, output JSON path, and optional flag/value pairs.');
     const options = {}, keys = { '--source-id': 'sourceId', '--max-files': 'maxFiles', '--max-file-bytes': 'maxFileBytes', '--max-total-bytes': 'maxTotalBytes' };
@@ -174,6 +270,9 @@ try {
     console.log(JSON.stringify({ ok: true, ...await recoverModelFile(args[0], args[1]) }));
   } else throw new Error(`Unknown command "${command}". Run with --help.`);
 } catch (error) {
-  console.error(JSON.stringify({ ok: false, command, ...(args[0] && ['scan','scan-view','scan-check','scan-query','validate','prepare','layout','check-layout','render','recover','build','render-site','build-site','build-connected','build-collection','query'].includes(command) ? {input: path.resolve(args[0])} : {}), message: error.message, diagnostics: error.diagnostics ?? [] }, null, 2));
+  if (['discover', 'context', 'read'].includes(command)) {
+    const { CONTEXT_PROTOCOL } = await import('../knowledge/context/protocol.mjs');
+    console.error(JSON.stringify({ protocolVersion: CONTEXT_PROTOCOL, status: error.status ?? (/^(context requires|Supply at most|Each --term|--at requires|Budget must|Unrecognized reference|Corrupted reference|--)/.test(error.message) ? 'invalid_request' : 'runtime_error'), message: error.message, diagnostics: error.diagnostics ?? [] }));
+  } else console.error(JSON.stringify({ ok: false, command, ...(args[0] && ['scan','scan-view','scan-check','scan-query','validate','prepare','layout','check-layout','render','recover','build','render-site','build-site','build-connected','build-collection','query'].includes(command) ? {input: path.resolve(args[0])} : {}), message: error.message, diagnostics: error.diagnostics ?? [] }, null, 2));
   process.exitCode = 1;
 }

@@ -128,6 +128,36 @@ Syntax-only references remain unresolved; support is not equivalent across langu
 Lean 4 and full Objective-C++ are future work. See the [coverage table](docs/source-scanning.md)
 for limits. Scanning is experimental and is not included in 0.2.0.
 
+### Development preview: use project knowledge from your agent
+
+Register Waxwing with the agent you already use, then let it ask bounded questions
+against the models, source snapshots and sites the repository already has:
+
+```sh
+node bin/waxwing.mjs init --agent codex --agent claude
+node bin/waxwing.mjs doctor --format json
+node bin/waxwing.mjs context --term CheckoutService
+node bin/waxwing.mjs context --at src/checkout/service.ts:118
+```
+
+`init` adds a short marked instruction block and a portable project skill, and
+`detach` removes them again without touching unrelated text.
+
+**`context` is a lookup, not a question answerer.** It never reads an English
+question. You (or the agent) give it concrete input:
+
+- `--term <text>` — a name or path, such as a function, class, file, component or
+  workflow. It matches recorded IDs, names, file paths and authored model text,
+  case-insensitively, with exact matches first. It does not search inside file
+  contents; use grep for that.
+- `--at <path:line>` — a location from grep, a stack trace or an error report. It
+  returns the recorded function or class spanning that line, and its file.
+
+Both repeat and combine. Existing Graphify graphs (`graphify-out/graph.json`) are
+read alongside Waxwing's own models and scans. Each candidate reports its match basis; `read` returns records, related
+references, existing view links and source excerpts (hash-verified, or labeled unverified when the file changed since the scan). Nothing calls
+an LLM or proves an explanation. See [agent entry](docs/agent-entry.md).
+
 ### Work on Waxwing
 
 From a source checkout:

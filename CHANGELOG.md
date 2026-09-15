@@ -27,6 +27,23 @@ Source scanning and connected source exploration are experimental.
 Existing architecture, workflow, sequence, collection, and workspace schemas are
 unchanged. No model migration is required. See [upgrading from 0.2.0](docs/migrations.md#020-to-030).
 
+- Development preview of agent entry: `init`/`detach` register or remove a portable
+  project skill and a short marked instruction block for Codex and Claude Code,
+  with dry-run diffs, edit preservation, conflict preflight and rolled-back failed
+  writes. `.waxwing/integration.json` records managed content for other machines.
+- `doctor` reports runtime on PATH, per-host file state, readable knowledge and
+  repairs without claiming host uptake.
+- Read-only `discover`, `context` and `read` use protocol `0.1-context`: bounded
+  discovery of models, source snapshots, workspaces and sites; explicit
+  `--term` lookup over recorded names/paths and `--at path:line` lookup of the
+  enclosing recorded declaration, each with a match basis (no question parsing); revision-bound references; verified (or labeled unverified) source
+  excerpts, document ranges and existing site links; optional whole-response byte budgets (uncapped by default)
+  and distinct statuses. Graphify node-link graphs
+  (`graphify-out/graph.json` or registered paths) are read alongside native sources,
+  with direction markers, confidence and unverified current-file excerpts.
+- `guide` and `review-update` are available as top-level commands. The authoring
+  skill now routes behavior questions to a separate investigation reference.
+
 ## 0.2.0 — 2026-09-11
 
 - Publish under `@isought/waxwing`, with repository and documentation links pointing
