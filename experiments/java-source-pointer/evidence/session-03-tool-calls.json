@@ -1,0 +1,46 @@
+[
+  {
+    "type": "tool_use",
+    "id": "toolu_01CC1MdeqG3n6sWKQGWY7XaK",
+    "name": "Glob",
+    "input": {
+      "pattern": "**/Quote.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01VpAEbaVYBm7mVc2VFSAu5C",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/java-source-pointer-experiment/session-03/app/src/example/Quote.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01PXGPVwLPDJHbwhdZwB95Ct",
+    "name": "Glob",
+    "input": {
+      "pattern": "**/Adjustment.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  },
+  {
+    "type": "tool_use",
+    "id": "toolu_01BCDuhz9VQbPvMMXf2THBSk",
+    "name": "Read",
+    "input": {
+      "file_path": "/Users/david/learning/java-source-pointer-experiment/session-03/vendor-drop/2025-11/source/vendor/rules/Adjustment.java"
+    },
+    "caller": {
+      "type": "direct"
+    }
+  }
+]

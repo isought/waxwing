@@ -1,0 +1,112 @@
+{
+  "session-02": {
+    "scores": [
+      1,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      1,
+      1
+    ],
+    "serious_unsupported_claims": [
+      "Calls intended fee exclusion undercharging / less than the true order cost without establishing business intent.",
+      "Asserts sum(FG.total)=Order.total+fees universally; prior equality not established.",
+      "Claims fulfillment-group fees are only present when SKUs carry fees."
+    ],
+    "notes": [
+      "Tax override arithmetic found, but final summary contradicts it with always / unintended claims.",
+      "Balance inclusion predicate and negative balance omitted.",
+      "Payment adjustment eligibility and negative remainder not developed.",
+      "populateTotals route found but supplied transaction amount / auto-calculation condition omitted.",
+      "UI source isZero quoted, but negative and third-party cases not explained.",
+      "Groovy expected totals and PricingTest located correctly.",
+      "Final review: check 7 receives partial credit, consistently with session-01; the gate is explained but active-payment and successful-transaction-type selection is not. Initial evaluator draft assigned 1; this correction changes grading, not the frozen rubric."
+    ],
+    "correction": null
+  },
+  "session-01": {
+    "scores": [
+      1,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      1,
+      1
+    ],
+    "serious_unsupported_claims": [
+      "Treats intended exclusion as undercharging and asserts checkouts should fail without an established requirement.",
+      "Asserts universal sum-of-group reconciliation and exclusive SKU fee provenance.",
+      "Claims any gateway DTO will exclude fees without resolving supplied-amount overload."
+    ],
+    "notes": [
+      "TaxOverride fixture found, but mechanism-level qualification omitted from broad tax statements.",
+      "Balance predicate, negative balance, and UI third-party qualification omitted.",
+      "Payment adjustment described only as third-party/credit-card rather than final-payment predicate; no negative remainder.",
+      "Threshold reduction found but successful transaction types / overpayment qualification omitted.",
+      "Groovy arithmetic and integration assertion found."
+    ],
+    "correction": null
+  },
+  "session-03": {
+    "scores": [
+      0.5,
+      0.5,
+      0,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      1,
+      0.5
+    ],
+    "serious_unsupported_claims": [
+      "Treats intended exclusion as undercharging, business shortfall and an incorrect UI without establishing intended obligation.",
+      "Asserts universal FG total reconciliation despite note explicitly declining that claim.",
+      "Claims gateway mapping whenever a final payment exists, without the autoCalculateFinalPaymentTotals and multiple-final-payment conditions."
+    ],
+    "notes": [
+      "Fee delta correct, but complete upstream formula including order adjustments is absent.",
+      "Fee-tax retention and taxOverride entirely absent.",
+      "Remaining-balance predicate and negative case omitted despite the note.",
+      "Adjustment omits last-eligible and negative-remainder qualifications.",
+      "Checkout types named, but active-payment scope and overpayment behavior incompletely explained.",
+      "UI code includes isZero and third-party condition but negative case not analyzed.",
+      "Passthrough stored amounts traced.",
+      "PricingTest located, Groovy arithmetic omitted."
+    ],
+    "correction": null
+  },
+  "session-04": {
+    "scores": null,
+    "status": "incomplete: account usage limit",
+    "correction": "not assessable",
+    "notes": [
+      "Do not score infrastructure interruption as a failure of the note paradigm."
+    ]
+  },
+  "session-05": {
+    "scores": null,
+    "status": "incomplete: account usage limit",
+    "correction": "not assessable",
+    "notes": [
+      "Do not score infrastructure interruption as a failure of the note paradigm."
+    ]
+  },
+  "session-06": {
+    "scores": null,
+    "status": "incomplete: account usage limit",
+    "correction": "not assessable",
+    "notes": [
+      "Do not score infrastructure interruption as a failure of the note paradigm."
+    ]
+  }
+}

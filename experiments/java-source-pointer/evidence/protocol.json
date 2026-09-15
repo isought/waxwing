@@ -1,0 +1,19 @@
+{
+  "revision": "8efe922a850674a8cba210e10843a36578702d9b",
+  "conditions": [
+    "hint",
+    "control",
+    "control",
+    "hint"
+  ],
+  "model": "claude-sonnet-4-6",
+  "expected_values": [
+    109,
+    97
+  ],
+  "score": "Both exact values, correct <100 boundary and +3 caller transform, cite actual dependency implementation; no guessed jar behavior.",
+  "difference": "One source-location sentence in AGENTS.md; same readable source tree and JAR in all runs.",
+  "scope": "Tests navigation hint in a tiny recursively searchable repo, not unavailable source or architectural explanation reuse.",
+  "input_metric": "uncached + cache creation + cache read from final usage",
+  "verification": "Compiled dependency jar and caller; external Probe ran and printed 109 then 97. No Probe or output exists in subject checkouts."
+}
