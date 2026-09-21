@@ -1,0 +1,497 @@
+{
+  "diagramType": "relational",
+  "schemaVersion": "relational-1",
+  "id": "orders-storage",
+  "title": "Order storage",
+  "scope": {
+    "environment": "Fictional order service",
+    "timeframe": "Illustrative schema",
+    "coverage": "Catalog metadata for public; 0 external foreign-key target(s). Logical application references are not inferred.",
+    "question": "Which relations does the database enforce, and which remain application claims?"
+  },
+  "sources": [
+    {
+      "id": "orders-schema",
+      "kind": "code",
+      "locator": "fictional:orders/schema.sql",
+      "description": "Fictional order service schema authored for this public example; no deployment is asserted."
+    },
+    {
+      "id": "audit-handler",
+      "kind": "code",
+      "locator": "fictional:orders/audit-handler",
+      "description": "Authored illustration of an application-enforced JSON reference; no real source file is asserted."
+    }
+  ],
+  "tables": [
+    {
+      "id": "pg:table:public/audit_events",
+      "label": "public.audit_events",
+      "name": "audit_events",
+      "schema": "public",
+      "kind": "table",
+      "external": false,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:table:public/customers",
+      "label": "public.customers",
+      "name": "customers",
+      "schema": "public",
+      "kind": "table",
+      "external": false,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:table:public/line_items",
+      "label": "public.line_items",
+      "name": "line_items",
+      "schema": "public",
+      "kind": "table",
+      "external": false,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:table:public/orders",
+      "label": "public.orders",
+      "name": "orders",
+      "schema": "public",
+      "kind": "table",
+      "external": false,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      },
+      "architectureRefs": [
+        {
+          "modelId": "order-processing",
+          "recordId": "orders-database",
+          "label": "Orders datastore (illustrative mapping)"
+        }
+      ]
+    }
+  ],
+  "columns": [
+    {
+      "id": "pg:column:public/audit_events/id",
+      "label": "public.audit_events.id",
+      "tableRef": "pg:table:public/audit_events",
+      "name": "id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/audit_events/payload",
+      "label": "public.audit_events.payload",
+      "tableRef": "pg:table:public/audit_events",
+      "name": "payload",
+      "dataType": "jsonb",
+      "nullable": false,
+      "default": "'{}'::jsonb",
+      "ordinal": 2,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/customers/active",
+      "label": "public.customers.active",
+      "tableRef": "pg:table:public/customers",
+      "name": "active",
+      "dataType": "boolean",
+      "nullable": false,
+      "default": "true",
+      "ordinal": 3,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/customers/email",
+      "label": "public.customers.email",
+      "tableRef": "pg:table:public/customers",
+      "name": "email",
+      "dataType": "text",
+      "nullable": false,
+      "default": null,
+      "ordinal": 2,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/customers/id",
+      "label": "public.customers.id",
+      "tableRef": "pg:table:public/customers",
+      "name": "id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/line_items/customer_id",
+      "label": "public.line_items.customer_id",
+      "tableRef": "pg:table:public/line_items",
+      "name": "customer_id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/line_items/line_number",
+      "label": "public.line_items.line_number",
+      "tableRef": "pg:table:public/line_items",
+      "name": "line_number",
+      "dataType": "integer",
+      "nullable": false,
+      "default": null,
+      "ordinal": 3,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/line_items/order_id",
+      "label": "public.line_items.order_id",
+      "tableRef": "pg:table:public/line_items",
+      "name": "order_id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 2,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/line_items/sku",
+      "label": "public.line_items.sku",
+      "tableRef": "pg:table:public/line_items",
+      "name": "sku",
+      "dataType": "text",
+      "nullable": false,
+      "default": null,
+      "ordinal": 4,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/orders/customer_id",
+      "label": "public.orders.customer_id",
+      "tableRef": "pg:table:public/orders",
+      "name": "customer_id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 2,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/orders/id",
+      "label": "public.orders.id",
+      "tableRef": "pg:table:public/orders",
+      "name": "id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:column:public/orders/status",
+      "label": "public.orders.status",
+      "tableRef": "pg:table:public/orders",
+      "name": "status",
+      "dataType": "text",
+      "nullable": false,
+      "default": "'draft'::text",
+      "ordinal": 3,
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "id": "pg:constraint:public/audit_events/audit_events_pkey",
+      "label": "audit_events_pkey",
+      "tableRef": "pg:table:public/audit_events",
+      "kind": "primary",
+      "columnRefs": [
+        "pg:column:public/audit_events/id"
+      ],
+      "definition": "PRIMARY KEY (id)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:constraint:public/customers/customers_pkey",
+      "label": "customers_pkey",
+      "tableRef": "pg:table:public/customers",
+      "kind": "primary",
+      "columnRefs": [
+        "pg:column:public/customers/id"
+      ],
+      "definition": "PRIMARY KEY (id)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:constraint:public/line_items/line_items_order_owner_fkey",
+      "label": "line_items_order_owner_fkey",
+      "tableRef": "pg:table:public/line_items",
+      "kind": "foreign",
+      "columnRefs": [
+        "pg:column:public/line_items/customer_id",
+        "pg:column:public/line_items/order_id"
+      ],
+      "definition": "FOREIGN KEY (customer_id, order_id) REFERENCES orders(customer_id, id)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      },
+      "references": {
+        "tableRef": "pg:table:public/orders",
+        "columnRefs": [
+          "pg:column:public/orders/customer_id",
+          "pg:column:public/orders/id"
+        ]
+      },
+      "onDelete": "restrict",
+      "onUpdate": "no action",
+      "match": "simple",
+      "validated": true,
+      "deferrable": false
+    },
+    {
+      "id": "pg:constraint:public/line_items/line_items_pkey",
+      "label": "line_items_pkey",
+      "tableRef": "pg:table:public/line_items",
+      "kind": "primary",
+      "columnRefs": [
+        "pg:column:public/line_items/order_id",
+        "pg:column:public/line_items/line_number"
+      ],
+      "definition": "PRIMARY KEY (order_id, line_number)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:constraint:public/orders/orders_customer_fkey",
+      "label": "orders_customer_fkey",
+      "tableRef": "pg:table:public/orders",
+      "kind": "foreign",
+      "columnRefs": [
+        "pg:column:public/orders/customer_id"
+      ],
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      },
+      "references": {
+        "tableRef": "pg:table:public/customers",
+        "columnRefs": [
+          "pg:column:public/customers/id"
+        ]
+      },
+      "onDelete": "restrict",
+      "onUpdate": "no action",
+      "match": "simple",
+      "validated": true,
+      "deferrable": false
+    },
+    {
+      "id": "pg:constraint:public/orders/orders_customer_id_id_key",
+      "label": "orders_customer_id_id_key",
+      "tableRef": "pg:table:public/orders",
+      "kind": "unique",
+      "columnRefs": [
+        "pg:column:public/orders/customer_id",
+        "pg:column:public/orders/id"
+      ],
+      "definition": "UNIQUE (customer_id, id)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:constraint:public/orders/orders_pkey",
+      "label": "orders_pkey",
+      "tableRef": "pg:table:public/orders",
+      "kind": "primary",
+      "columnRefs": [
+        "pg:column:public/orders/id"
+      ],
+      "definition": "PRIMARY KEY (id)",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "id": "pg:index:public/customers/customers_active_email_key",
+      "label": "customers_active_email_key",
+      "tableRef": "pg:table:public/customers",
+      "unique": true,
+      "columnRefs": [
+        "pg:column:public/customers/email"
+      ],
+      "expression": null,
+      "predicate": "active",
+      "method": "btree",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    },
+    {
+      "id": "pg:index:public/orders/orders_status_lower_idx",
+      "label": "orders_status_lower_idx",
+      "tableRef": "pg:table:public/orders",
+      "unique": false,
+      "columnRefs": [],
+      "expression": "CREATE INDEX orders_status_lower_idx ON public.orders USING btree (lower(status))",
+      "predicate": null,
+      "method": "btree",
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "orders-schema"
+        ]
+      }
+    }
+  ],
+  "associations": [
+    {
+      "id": "audit-order-reference",
+      "label": "Audit payload names an order",
+      "from": {
+        "tableRef": "pg:table:public/audit_events",
+        "columnRefs": [
+          "pg:column:public/audit_events/payload"
+        ]
+      },
+      "to": {
+        "tableRef": "pg:table:public/orders",
+        "columnRefs": [
+          "pg:column:public/orders/id"
+        ]
+      },
+      "enforcement": "application",
+      "cardinality": {
+        "from": {
+          "min": 0,
+          "max": "many"
+        },
+        "to": {
+          "min": 0,
+          "max": 1
+        }
+      },
+      "evidence": {
+        "status": "reported",
+        "sourceRefs": [
+          "audit-handler"
+        ],
+        "reason": "The fictional handler validates payload.orderId. PostgreSQL does not enforce a foreign key inside this JSON value."
+      }
+    }
+  ]
+}

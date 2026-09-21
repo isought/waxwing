@@ -88,6 +88,9 @@ changes, see [Contributing](CONTRIBUTING.md).
 
 ## Go deeper
 
+- [Relational storage and ERDs](docs/relational.md): tables, columns, composite
+  foreign keys, qualified logical associations, and PostgreSQL catalog snapshots.
+  This capability is in the 0.4 prerelease checkout/package, not the 0.3.0 release.
 - [Examples, commands, and source recovery](docs/features.md)
 - [Agent authoring guide](AGENT_GUIDE.md) and [installable skill](docs/agent-skill.md)
 - [Multi-page sites](docs/site-export.md) and [collections of explanations](docs/collections.md)

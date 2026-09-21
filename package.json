@@ -1,6 +1,6 @@
 {
   "name": "@isought/waxwing",
-  "version": "0.3.0",
+  "version": "0.4.0-relational.1",
   "type": "module",
   "description": "Inspectable architecture diagrams for humans and coding agents.",
   "engines": {
@@ -22,7 +22,7 @@
     "demo:connected": "node experiments/connected-source/demo.mjs"
   },
   "dependencies": {
-    "ajv": "8.17.1",
+    "ajv": "8.20.0",
     "elkjs": "0.12.0",
     "markdown-it": "15.0.1",
     "tree-sitter-wasm": "2.0.1",
@@ -37,6 +37,7 @@
     "./documents": "./modules/documents/index.mjs",
     "./graphs": "./modules/graphs/index.mjs",
     "./sequence": "./modules/sequence/index.mjs",
+    "./relational": "./modules/relational/index.mjs",
     "./workflow": "./modules/workflow/index.mjs",
     "./site": "./modules/site/index.mjs",
     "./collection": "./modules/site/collection.mjs",

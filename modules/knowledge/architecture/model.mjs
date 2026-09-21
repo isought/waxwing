@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { schemaDiagnostics, referenceDiagnostic } from '../shared/diagnostics.mjs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { validateSequenceModel } from '../sequence/model.mjs';
+import { validateRelationalModel } from '../relational/index.mjs';
 import { graphDiagnostics } from './graphs.mjs';
 import { documentDiagnostics } from '../documents/markdown.mjs';
 import { workflowDiagnostics } from '../workflow/model.mjs';
@@ -29,6 +30,7 @@ function candidates(knowledge, path) {
 }
 
 export function validateModel(model) {
+  if (model?.diagramType === 'relational') return validateRelationalModel(model);
   if (model?.diagramType === 'sequence') return validateSequenceModel(model);
   if (!validateShape(model)) {
     return {

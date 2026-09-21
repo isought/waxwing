@@ -23,8 +23,8 @@ const usage = `Waxwing — experimental modular diagram tool
   waxwing recover <layout.json|diagram.svg|diagram.html|site-directory> <model.json>
   waxwing build <model.json> <output-directory> [--group perspective-id] [--direction RIGHT|DOWN]
 
-Architecture and basic sequence models use the same commands. Sequence models declare diagramType: sequence.
---group and --direction apply only to architecture diagrams; sequence order comes from JSON 1.
+Architecture, sequence, and relational models use the same commands. Specialized models declare diagramType.
+--group applies only to architecture diagrams. --direction supports architecture and relational diagrams; sequence order comes from JSON 1.
 --anchor graph-id=node-id applies to layout, build, and build-site. Repeat for different architecture graphs.
 An anchor is a reading preference, not a workflow entry or execution-order claim.
 The layout stage is optional. Render accepts a compatible, independently authored JSON 2.

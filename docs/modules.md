@@ -118,6 +118,38 @@ Both drafts accept the additive [entry declaration](sequence-entry.md). Its
 participant placement and visible start cue derive from source claims; existing
 artifacts without entry metadata remain supported without invented defaults.
 
+## Relational storage and ERDs
+
+The 0.4 prerelease adds `@isought/waxwing/relational`. This subpath is not available
+in 0.3.0; use the matching prerelease archive or this source checkout.
+
+```js
+import {
+  validateRelationalModel, relationalRecords, foreignKeyCardinality,
+  extractPostgresSchema, fromPostgresSnapshot,
+  layoutRelational, validateRelationalLayout,
+  renderRelationalSVG, renderRelationalHTML,
+} from '@isought/waxwing/relational';
+
+const validation = validateRelationalModel(model);
+const layout = await layoutRelational(model);
+const svg = renderRelationalSVG(layout);
+const html = renderRelationalHTML(layout);
+```
+
+The generic model/layout/render/artifact APIs also dispatch relational models
+without converting them to architecture records. Complete relational JSON 1 is
+embedded and recoverable from SVG/HTML. `relationalRecords` returns inspectable
+tables, columns, constraints, indexes and associations with their original source
+records; FK cardinality remains qualified by evidence, nullability and key facts.
+
+`extractPostgresSchema(query, { schemas })` runs one parameterized read-only catalog
+statement through a caller-supplied query function and returns a normalized
+`postgres-catalog-1` snapshot. `fromPostgresSnapshot(snapshot, { id, title, ... })`
+validates and converts that snapshot to a `relational-1` model with stable IDs.
+It does not execute migrations or infer application references. See the complete
+[relational contract and acquisition limits](relational.md).
+
 ## CLI boundary
 
 `bin/waxwing.mjs` delegates to `modules/interfaces/cli.mjs`, which dynamically
@@ -143,6 +175,7 @@ modules/
   knowledge/
     architecture/  JSON 1 validation, graph references and projections
     sequence/      Scenario/behavior meaning, entry and order validation
+    relational/    Relational records, reference validation and FK cardinality
     workflow/      Architecture participation and interaction validation
     documents/     Markdown parsing, resolved links and asset validation
     query/         Bounded retrieval of recorded knowledge
@@ -154,6 +187,7 @@ modules/
     layout/        ELK adapter, geometry validation and readability checks
     render/        SVG/HTML output, viewer assets and artifact recovery
     sequence/      Drawing constraints, geometry and sequence viewer
+    relational/    Table/column geometry and ERD inspector
     workflow/      Drawing constraints, geometry and workflow rendering
     documents/     Document HTML and navigation URLs
     site/          Page composition, assets and search presentation
@@ -163,7 +197,7 @@ modules/
   application/     File loading, build/render/recover workflows, site writes,
                    collection builds and update review coordination
   interfaces/      CLI arguments/results and skill installation/guide access
-  analysis/        JS/TS source extraction and static binding; compiler loaded lazily
+  analysis/        Source extraction and PostgreSQL catalog normalization; compilers loaded lazily
   model/, ...      Existing module paths retained as compatibility entry points
 schemas/       JSON 1 and JSON 2 contracts
 bin/           Stable executable entry point

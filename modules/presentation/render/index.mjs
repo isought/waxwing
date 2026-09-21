@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { workflowSVG } from '../workflow/render.mjs';
 import { renderSequenceSVG, renderSequenceHTML } from '../sequence/render.mjs';
+import { renderRelationalSVG, renderRelationalHTML } from '../relational/render.mjs';
 import { inspectReadability } from '../layout/readability.mjs';
 import { selectHighlights, cleanViewerSVG, setDiagramFocus } from './highlights.mjs';
 import { componentPresentation, previewText } from './presentation.mjs';
@@ -72,6 +73,7 @@ ${embed ? `    <metadata id="waxwing-source" data-encoding="base64">${payload}</
 }
 
 export function renderSVG(layout, options = {}) {
+  if (layout?.diagramType === 'relational') return renderRelationalSVG(layout, options);
   if (layout?.diagramType === 'sequence') return renderSequenceSVG(layout, options);
   assertLayout(layout);
   if (Object.keys(options).some((key) => !['graphRef', 'workflowRef', 'skin'].includes(key))) throw new Error('Unknown SVG render option.');
@@ -87,6 +89,7 @@ function checkedSkin(value = 'standard') {
 }
 
 export function renderHTML(layout, options = {}) {
+  if (layout?.diagramType === 'relational') return renderRelationalHTML(layout, options);
   if (layout?.diagramType === 'sequence') return renderSequenceHTML(layout, options);
   assertLayout(layout);
   if (Object.keys(options).some((key) => key !== 'skin')) throw new Error('Unknown HTML render option.');

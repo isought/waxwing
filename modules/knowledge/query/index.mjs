@@ -1,15 +1,16 @@
 import { validateModel } from '../architecture/model.mjs';
 import { digest } from '../shared/model.mjs';
 import { graphsOf } from '../architecture/graphs.mjs';
+import { relationalRecords } from '../relational/index.mjs';
 
 // A canonical record appears once here, independently of how many views show it.
 export function modelRecords(model) {
   const collections = model.diagramType === 'sequence'
     ? [['participants','component'],['steps','step'],['blocks','block']]
     : [['entities','component'],['relationships','relationship'],['groups','group'],['memberships','membership'],['perspectives','perspective']];
-  const { sources, documents, entities, relationships, participants, steps, blocks, workflows, graphs, groups, memberships, perspectives, notes, ...header } = model;
-  const entries = [{kind:'model',record:header}, ...collections.flatMap(([key,kind])=>(model[key]??[]).map(record=>({kind,record}))),
-    ...(model.diagramType === 'sequence' ? [] : graphsOf(model).filter(g=>g.id!==model.id).map(record=>({kind:'graph',record}))),
+  const { sources, documents, entities, relationships, participants, steps, blocks, workflows, graphs, groups, memberships, perspectives, notes, tables, columns, constraints, indexes, associations, ...header } = model;
+  const entries = [{kind:'model',record:header}, ...(model.diagramType === 'relational' ? relationalRecords(model).map(({kind,record})=>({kind,record})) : collections.flatMap(([key,kind])=>(model[key]??[]).map(record=>({kind,record})))),
+    ...(['sequence','relational'].includes(model.diagramType) ? [] : graphsOf(model).filter(g=>g.id!==model.id).map(record=>({kind:'graph',record}))),
     ...(workflows??[]).flatMap(record=>[{kind:'workflow',record},...record.steps.map(step=>({kind:'step',record:step,workflowRef:record.id}))]),
     ...(notes??[]).map(record=>({kind:'note',record})), ...(sources??[]).map(record=>({kind:'source',record})),
     ...(documents??[]).map(({assets,...record})=>({kind:'document',record}))];
@@ -46,10 +47,10 @@ export function queryModel(model, operation, value, options={}) {
   const limit=options.limit??20, offset=options.offset??0, budget=options.budget??12000;
   if(!Number.isInteger(limit)||limit<1||limit>1000||!Number.isInteger(offset)||offset<0||!Number.isInteger(budget)||budget<256||budget>1000000)throw new Error('Query limit must be 1–1000, offset nonnegative, and budget 256–1000000 characters.');
   const entries=modelRecords(model), found=entries.find(e=>e.record.id===value);
-  if(options.kind&&!['model','graph','component','relationship','group','membership','perspective','workflow','step','block','note','source','document'].includes(options.kind))throw new Error(`Unknown record kind "${options.kind}".`);
+  if(options.kind&&!['model','graph','component','relationship','group','membership','perspective','workflow','step','block','note','source','document','table','column','constraint','index','association'].includes(options.kind))throw new Error(`Unknown record kind "${options.kind}".`);
   let items, semantics='Recorded model knowledge; partial coverage is not proof of absence.';
   if(operation==='search') {
-    const index=entries.map(e=>({id:e.record.id,kind:e.kind,title:e.record.title??e.record.label??e.record.id,text:recordText(e.record)}));
+    const index=entries.map(e=>({id:e.record.id,kind:e.kind,title:e.record.title??e.record.label??e.record.id,text:model.diagramType==='relational'?JSON.stringify(e.record):recordText(e.record)}));
     items=searchRecords(index,value,{kind:options.kind,limit:index.length}).results.map(({text,score,...e})=>e);
   } else {
     if(!found)throw new Error(`Unknown record "${value}".`);
@@ -64,8 +65,16 @@ export function queryModel(model, operation, value, options={}) {
       const direction=options.direction??'both';
       if(!['incoming','outgoing','both'].includes(direction))throw new Error('Direction must be incoming, outgoing, or both.');
       if(model.diagramType==='sequence')throw new Error('Use workflow for sequence order; neighbors queries architecture relationships.');
-      items=model.relationships.filter(r=>(direction!=='incoming'&&r.from===value||direction!=='outgoing'&&r.to===value)&&(!options.relation||r.kind===options.relation)).map(relationship=>({relationship,neighbor:entries.find(e=>e.record.id===(relationship.from===value?relationship.to:relationship.from))?.record}));
-      semantics='Recorded connectivity, including qualified relationships; no execution order or proven behavioral impact is implied.';
+      if(model.diagramType==='relational') {
+        const relations=[...model.constraints.filter(r=>r.kind==='foreign').map(record=>({record,kind:'foreign',from:{tableRef:record.tableRef,columnRefs:record.columnRefs},to:record.references})), ...model.associations.map(record=>({record,kind:record.enforcement,from:record.from,to:record.to}))];
+        if(options.relation&&!['foreign','application','inferred'].includes(options.relation))throw new Error('Relational neighbor relation must be foreign, application, or inferred.');
+        const at=(endpoint)=>endpoint.tableRef===value||endpoint.columnRefs.includes(value);
+        items=relations.filter(r=>(direction!=='incoming'&&at(r.from)||direction!=='outgoing'&&at(r.to)||r.record.id===value)&&(!options.relation||r.kind===options.relation)).map(r=>({relationship:r.record,neighbor:entries.find(e=>e.record.id===(at(r.from)?r.to.tableRef:r.from.tableRef))?.record,from:r.from,to:r.to}));
+        semantics='Recorded foreign keys and separately qualified logical associations. Column arrays retain declared order; logical endpoints do not imply positional pairing. No query execution, lineage, or completeness is inferred.';
+      } else {
+        items=model.relationships.filter(r=>(direction!=='incoming'&&r.from===value||direction!=='outgoing'&&r.to===value)&&(!options.relation||r.kind===options.relation)).map(relationship=>({relationship,neighbor:entries.find(e=>e.record.id===(relationship.from===value?relationship.to:relationship.from))?.record}));
+        semantics='Recorded connectivity, including qualified relationships; no execution order or proven behavioral impact is implied.';
+      }
     } else throw new Error(`Unknown query operation "${operation}".`);
   }
   const selected=[]; let used=2;
