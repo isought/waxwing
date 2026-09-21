@@ -9,7 +9,8 @@ with shared rules, your chosen model section and its example, then documents and
 pipeline commands; the other model sections remain available in this same file.
 
 Contract snapshot: architecture `0.5-draft`, sequence scenario
-`0.1-sequence-draft`, and sequence behavior `0.2-sequence-draft`. These are
+`0.1-sequence-draft`, sequence behavior `0.2-sequence-draft`, and relational
+`relational-1` (0.4 prerelease). These are
 experimental formats. Use this file from the same package version or checkout as the validator.
 Older formats are summarized under compatibility below. The installed validator
 remains the executable check; it does not verify whether supplied evidence is true.
@@ -37,6 +38,7 @@ project; a global CLI installation does not make `@isought/waxwing/*` imports av
 - [Investigate and preserve meaning](#investigate-and-preserve-meaning)
 - [Shared field rules](#shared-field-rules)
 - [Architecture JSON 1](#architecture-json-1)
+- [Relational JSON 1](#relational-json-1)
 - [Architecture subgraphs](#architecture-subgraphs)
 - [Architecture workflows](#architecture-workflows)
 - [Sequence JSON 1](#sequence-json-1)
@@ -62,7 +64,7 @@ Waxwing: [global CLI and version / checkout path / unavailable]
 System sources: [authorized repository paths, documents, or supplied contents]
 Question to answer: [one concrete reading task]
 Model: [choose from the guide / architecture / architecture with workflow /
-        sequence scenario / sequence behavior with loops or alternatives]
+        sequence scenario / sequence behavior with loops or alternatives / relational storage]
 Environment and snapshot: [environment, revisions, or explicitly unknown]
 Abstraction: [e.g. services and resources, with service internals collapsed]
 Include: [scope boundaries]
@@ -100,13 +102,15 @@ model credentials, ingestion server, or particular LLM provider is required.
 | How does one recorded interaction path revisit the components in that architecture? | Architecture with an explicit workflow in addition to connectivity. | `0.5-draft`, populated `workflows`. |
 | What happened, in what order, in one particular scenario? | Sequence scenario. | `0.1-sequence-draft` |
 | What current behavior repeats over a collection or chooses between two paths? | Sequence behavior. | `0.2-sequence-draft` |
+| Which tables, columns, keys and storage relationships exist, and which claims does the database enforce? | Relational storage/ERD. | `relational-1` (0.4 prerelease) |
 
 These answer different concerns. Do not infer chronology from dependencies or
 mechanically turn one source into every diagram type. A graph's prose question
-alone is not an executable ordering instruction. Flowcharts, ERDs, automatic
+alone is not an executable ordering instruction. Flowcharts and automatic
 architecture-to-sequence conversion are not implemented. Collections provide
 navigation between independent models. Architecture and sequence are separate model documents; do not
-mix their top-level fields. Architecture workflows explicitly reuse architecture
+mix their top-level fields. Relational storage is also a separate model family;
+architecture datastore mappings use explicit `architectureRefs`. Architecture workflows explicitly reuse architecture
 identities; a separate sequence does not automatically share those identities.
 
 ## Investigate and preserve meaning
@@ -269,6 +273,114 @@ subjects can be participants or steps; sequence behavior additionally permits
 blocks. Sources/documents/graphs are not note subject types. Use scope or an
 attached document for an explanation that cannot attach to a supported subject.
 Notes and document prose are inspectable meaning, not executable layout rules.
+
+## Relational JSON 1
+
+Relational models need the 0.4 prerelease checkout/package; the 0.3.0 installation
+above does not include them. Use this separate record contract instead of the
+architecture `K<T>` wrappers and architecture ID pattern. Relational IDs are
+non-empty strings, globally unique across the model, records and sources.
+Catalog IDs encode schema/table/record names. Preserve IDs on ordinary updates;
+do not guess that removal/addition is a rename.
+
+The root fields are exactly `diagramType: "relational"`,
+`schemaVersion: "relational-1"`, `id`, `title`, `scope`, `sources`, `tables`,
+`columns`, `constraints`, `indexes`, and `associations`. All arrays are required.
+`scope` has four non-empty text fields: `environment`, `timeframe`, `coverage`,
+and `question`. A source has exactly `id`, `kind`, `locator`, and `description`,
+all non-empty strings. Source kind is open text (for example `database` or `code`).
+Record whether a source is a database observation or a repository declaration;
+neither a Git commit nor an old catalog snapshot proves present deployment state.
+
+Every record below requires `id`, `label`, and
+`evidence: { status, sourceRefs, reason? }`; `description` is optional text.
+Evidence status is `established`, `reported`, `inferred`, or `unknown`.
+Established/reported records require at least one registered source reference.
+Inferred/unknown records require a non-empty reason. Disputed alternatives are
+not supported in this first relational format and must not be silently coerced.
+
+| Record array | Required fields beyond id/label/evidence |
+|---|---|
+| `tables` | `name: Text`, `schema: Text or null`, `kind: "table", "view", or "materializedView"`, `external: Boolean` |
+| `columns` | `tableRef: ID`, `name: Text`, `dataType: Text or null`, `nullable: Boolean or null`, `default: Text or null`, `ordinal: positive integer or null` |
+| `constraints` | `tableRef: ID`, `kind: "primary", "unique", "foreign", or "check"`, `columnRefs: distinct ID array`, `definition: Text or null` |
+| `indexes` | `tableRef: ID`, `unique: Boolean or null`, `columnRefs: ordered ID array`, `expression: Text or null`, `predicate: Text or null`, `method: Text or null` |
+| `associations` | `from: endpoint`, `to: endpoint`, `enforcement: "application" or "inferred"`, `cardinality: { from: multiplicity, to: multiplicity }` |
+
+A column must belong to its registered table. Ordinals are unique within a table.
+Primary/unique/foreign constraints need at least one column; checks may use none.
+A table can have one primary key, whose columns cannot be declared nullable.
+An index needs columns or an expression. SQL default/predicate/definition strings
+remain opaque; do not claim that the validator evaluates them.
+
+Only a foreign constraint additionally requires `references: endpoint`,
+`onDelete`, `onUpdate`, `match`, `validated`, and `deferrable`. An endpoint is
+`{ tableRef: ID, columnRefs: distinct ID array }`. A foreign key must have equal,
+nonzero counts of source and target columns; the pairs retain array order.
+Actions are `"no action"`, `"restrict"`, `"cascade"`, `"set null"`, `"set default"`,
+or null. Match is `"simple"`, `"full"`, `"partial"`, or null. Validated and
+deferrable are booleans or null. Internal targets need a recorded unconditional
+primary/unique key. Mark an out-of-scope target table `external: true`, recording
+its actual referenced columns; do not invent an endpoint when its identity is unknown.
+
+An association may use empty endpoint column arrays for table-level relationships.
+Its `from` multiplicity counts referencing rows per target; `to` counts targets
+per referencing row. Each multiplicity is `{ min: 0, 1, or null;
+max: 1, "many", or null }` (this is notation, not JSON). Null means unknown.
+Logical column sets need not have equal lengths and do not imply positional pairs.
+An inferred association requires inferred evidence. State JSON paths and other
+logical qualifications in its description/evidence reason. Application enforcement
+must remain distinct from a database foreign key.
+
+Optional table `architectureRefs` is an array of `{ modelId, recordId, label }`
+string objects. It records a cross-model mapping; it does not validate the remote
+model. Optional column fields are `generated: "stored", "virtual", or null`,
+`generationExpression: Text or null`, and `identity: "always", "byDefault", or null`.
+Never record a generated expression as a default. Optional index fields are
+`definition: Text or null`, `valid: Boolean or null`, and `ready: Boolean or null`.
+Full SQL definitions can preserve INCLUDE/operator-class/order details.
+
+Keep unknown scalar values explicit with null and qualify the record's evidence.
+A null predicate/expression means no recorded predicate/expression; a qualified
+index cannot establish unconditional uniqueness. Foreign-key cardinality is
+derived at valid constraint boundaries from recorded validation, nullability and
+unconditional keys. Partial/expression/invalid indexes do not establish one-to-one
+cardinality. NOT VALID foreign keys can have unmatched existing rows; deferred
+constraints can be violated temporarily inside a transaction.
+
+This complete minimal model can be validated, built and recovered through the
+normal CLI pipeline. The richer public fixture is `examples/relational/model.json`.
+
+<!-- waxwing-example: relational -->
+```json
+{
+  "diagramType": "relational",
+  "schemaVersion": "relational-1",
+  "id": "orders-storage",
+  "title": "Order storage",
+  "scope": {
+    "environment": "Fictional order service",
+    "timeframe": "Illustrative schema",
+    "coverage": "One table; not a complete business model",
+    "question": "How is an order identified?"
+  },
+  "sources": [{ "id": "schema", "kind": "code", "locator": "fictional:orders.sql", "description": "Authored example; no live deployment is asserted." }],
+  "tables": [{ "id": "orders", "label": "public.orders", "name": "orders", "schema": "public", "kind": "table", "external": false, "evidence": { "status": "reported", "sourceRefs": ["schema"] } }],
+  "columns": [{ "id": "orders-id", "label": "public.orders.id", "tableRef": "orders", "name": "id", "dataType": "uuid", "nullable": false, "default": null, "ordinal": 1, "evidence": { "status": "reported", "sourceRefs": ["schema"] } }],
+  "constraints": [{ "id": "orders-pkey", "label": "orders_pkey", "tableRef": "orders", "kind": "primary", "columnRefs": ["orders-id"], "definition": "PRIMARY KEY (id)", "evidence": { "status": "reported", "sourceRefs": ["schema"] } }],
+  "indexes": [],
+  "associations": []
+}
+```
+
+For bounded acquisition use `extractPostgresSchema(query, { schemas })` from
+`@isought/waxwing/relational`. Supply an authorized query function; it executes
+one parameterized read-only PostgreSQL catalog statement and returns a validated
+`postgres-catalog-1` snapshot. `fromPostgresSnapshot(snapshot, { id, title })`
+returns the canonical model, with reported evidence and no invented timestamp.
+The caller can explicitly supply source/environment/timeframe/evidenceStatus.
+This path does not execute repository migrations, read table rows or infer
+application JSON references. See `docs/relational.md` for acquisition coverage.
 
 ## Architecture JSON 1
 

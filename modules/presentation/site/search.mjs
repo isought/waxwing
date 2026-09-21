@@ -5,7 +5,7 @@ import { escapeXML as esc } from '../render/index.mjs';
 
 export function searchIndex(model, destinations) {
   return modelRecords(model).flatMap(({kind,record})=>{
-    const base={id:record.id,kind,title:record.title??record.label??record.id,scope:model.scope.snapshot,
+    const base={id:record.id,kind,title:record.title??record.label??record.id,scope:model.scope.snapshot??model.scope.timeframe,
       destinations:destinations.get(record.id)??[{title:'Record catalog · not shown in a diagram',path:`records.html#record-${record.id}`}],text:recordText(record)};
     if(kind!=='document')return [base];
     base.destinations=[{title:base.title,path:`documents/${record.id}.html`}];

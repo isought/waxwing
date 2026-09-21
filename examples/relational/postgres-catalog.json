@@ -1,0 +1,258 @@
+{
+  "schemaVersion": "postgres-catalog-1",
+  "schemas": [
+    "public"
+  ],
+  "tables": [
+    {
+      "schema": "public",
+      "name": "customers",
+      "kind": "table"
+    },
+    {
+      "schema": "public",
+      "name": "orders",
+      "kind": "table"
+    },
+    {
+      "schema": "public",
+      "name": "line_items",
+      "kind": "table"
+    },
+    {
+      "schema": "public",
+      "name": "audit_events",
+      "kind": "table"
+    }
+  ],
+  "columns": [
+    {
+      "schema": "public",
+      "table": "customers",
+      "name": "id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1
+    },
+    {
+      "schema": "public",
+      "table": "customers",
+      "name": "email",
+      "dataType": "text",
+      "nullable": false,
+      "default": null,
+      "ordinal": 2
+    },
+    {
+      "schema": "public",
+      "table": "customers",
+      "name": "active",
+      "dataType": "boolean",
+      "nullable": false,
+      "default": "true",
+      "ordinal": 3
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "customer_id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 2
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "status",
+      "dataType": "text",
+      "nullable": false,
+      "default": "'draft'::text",
+      "ordinal": 3
+    },
+    {
+      "schema": "public",
+      "table": "line_items",
+      "name": "customer_id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1
+    },
+    {
+      "schema": "public",
+      "table": "line_items",
+      "name": "order_id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 2
+    },
+    {
+      "schema": "public",
+      "table": "line_items",
+      "name": "line_number",
+      "dataType": "integer",
+      "nullable": false,
+      "default": null,
+      "ordinal": 3
+    },
+    {
+      "schema": "public",
+      "table": "line_items",
+      "name": "sku",
+      "dataType": "text",
+      "nullable": false,
+      "default": null,
+      "ordinal": 4
+    },
+    {
+      "schema": "public",
+      "table": "audit_events",
+      "name": "id",
+      "dataType": "uuid",
+      "nullable": false,
+      "default": null,
+      "ordinal": 1
+    },
+    {
+      "schema": "public",
+      "table": "audit_events",
+      "name": "payload",
+      "dataType": "jsonb",
+      "nullable": false,
+      "default": "'{}'::jsonb",
+      "ordinal": 2
+    }
+  ],
+  "constraints": [
+    {
+      "schema": "public",
+      "table": "customers",
+      "name": "customers_pkey",
+      "kind": "primary",
+      "columnNames": [
+        "id"
+      ],
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "orders_pkey",
+      "kind": "primary",
+      "columnNames": [
+        "id"
+      ],
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "orders_customer_id_id_key",
+      "kind": "unique",
+      "columnNames": [
+        "customer_id",
+        "id"
+      ],
+      "definition": "UNIQUE (customer_id, id)"
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "orders_customer_fkey",
+      "kind": "foreign",
+      "columnNames": [
+        "customer_id"
+      ],
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id)",
+      "referencedSchema": "public",
+      "referencedTable": "customers",
+      "referencedColumnNames": [
+        "id"
+      ],
+      "onDelete": "restrict",
+      "onUpdate": "no action",
+      "match": "simple",
+      "validated": true,
+      "deferrable": false
+    },
+    {
+      "schema": "public",
+      "table": "line_items",
+      "name": "line_items_pkey",
+      "kind": "primary",
+      "columnNames": [
+        "order_id",
+        "line_number"
+      ],
+      "definition": "PRIMARY KEY (order_id, line_number)"
+    },
+    {
+      "schema": "public",
+      "table": "line_items",
+      "name": "line_items_order_owner_fkey",
+      "kind": "foreign",
+      "columnNames": [
+        "customer_id",
+        "order_id"
+      ],
+      "definition": "FOREIGN KEY (customer_id, order_id) REFERENCES orders(customer_id, id)",
+      "referencedSchema": "public",
+      "referencedTable": "orders",
+      "referencedColumnNames": [
+        "customer_id",
+        "id"
+      ],
+      "onDelete": "restrict",
+      "onUpdate": "no action",
+      "match": "simple",
+      "validated": true,
+      "deferrable": false
+    },
+    {
+      "schema": "public",
+      "table": "audit_events",
+      "name": "audit_events_pkey",
+      "kind": "primary",
+      "columnNames": [
+        "id"
+      ],
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "indexes": [
+    {
+      "schema": "public",
+      "table": "customers",
+      "name": "customers_active_email_key",
+      "unique": true,
+      "columnNames": [
+        "email"
+      ],
+      "expression": null,
+      "predicate": "active",
+      "method": "btree"
+    },
+    {
+      "schema": "public",
+      "table": "orders",
+      "name": "orders_status_lower_idx",
+      "unique": false,
+      "columnNames": [],
+      "expression": "CREATE INDEX orders_status_lower_idx ON public.orders USING btree (lower(status))",
+      "predicate": null,
+      "method": "btree"
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import { modelRecords } from '../../knowledge/query/index.mjs';
 import { searchIndex, searchBody, searchScript } from './search.mjs';
 import { projectSourceLinks } from '../../knowledge/source-links/index.mjs';
 import { renderSourceHTML } from '../source/index.mjs';
+import { renderRelationalHTML } from '../relational/render.mjs';
 
 export const SITE_VERSION = '0.1-site-draft';
 export const hashFile = (content) => createHash('sha256').update(content).digest('hex');
@@ -24,8 +25,30 @@ const title = (record) => record.title ?? record.label ?? record.id;
 const anchor = (id) => `record-${id}`;
 const relative = (from, to) => path.posix.relative(path.posix.dirname(from), to);
 
+function renderRelationalSite(layout, options) {
+  if (options.source !== undefined) throw new Error('Relational sites retain record evidence; connected architecture source projections are not supported for this model family.');
+  const model = layout.model, files = new Map(), pages = sitePages(model), index = siteSearchIndex(model);
+  const json = value => JSON.stringify(value, null, 2) + '\n';
+  const publication = options.publication;
+  const links = from => `<nav class="header-actions" aria-label="Site navigation"><a href="${relative(from, 'index.html')}">Diagram</a><a href="${relative(from, 'records.html')}">Records</a><a href="${relative(from, 'search.html')}">Search</a>${publication ? `<a href="${esc(relative(`sites/${publication.siteId}/${from}`, 'index.html'))}">${esc(publication.title)}</a>` : ''}</nav>`;
+  const related = from => publication ? `<nav class="record-links" aria-label="Related explanations">${publication.links.filter(link => link.fromPath.split('#')[0] === from).map(link => `<a href="${esc(relative(`sites/${publication.siteId}/${from}`, link.toPath))}">${esc(link.label)}</a>`).join('')}</nav>` : '';
+  for (const from of ['index.html', pages[0].path, 'records.html']) {
+    let html = renderRelationalHTML(layout, { skin: options.skin ?? 'standard' });
+    html = html.replace('<div class="header-actions">', `${links(from)}<div class="header-actions">`).replace('<footer>', `${related(from)}<footer>`);
+    if (from === 'records.html') html = html.replace('<details class="record-catalog">', '<details class="record-catalog" open>');
+    files.set(from, html);
+  }
+  files.set('assets/site.css', asset('../render/viewer.css') + '\n' + asset('site.css'));
+  files.set('assets/search.js', searchScript(index));
+  files.set('search.html', `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Search ${esc(model.title)} · Waxwing</title><link rel="stylesheet" href="assets/site.css"><script src="assets/search.js" defer></script></head><body><header class="masthead"><a class="brand" href="index.html">Waxwing · Relational</a>${links('search.html')}</header><main><h1>Search ${esc(model.title)}</h1>${searchBody(index)}</main></body></html>\n`);
+  files.set('source/model.json', json(model)); files.set('source/layout.json', json(layout));
+  files.set('waxwing-site.json', json({ schemaVersion: SITE_VERSION, modelDigest: digest(model), layoutDigest: digest(layout), pages: pages.map(({ kind, ref, path, title }) => ({ kind, ref, path, title })), files: Object.fromEntries([...files].map(([name, content]) => [name, hashFile(content)])) }));
+  return files;
+}
+
 // IDs define publication destinations. Source filesystem locations never do.
 export function sitePages(model) {
+  if (model.diagramType === 'relational') return [{ kind: 'graph', ref: model.id, title: model.title, scope: model.scope, path: 'graphs/relational.html' }];
   const diagrams = model.diagramType === 'sequence'
     ? [{ kind: 'graph', ref: model.id, title: model.title, scope: model.scope }]
     : graphsOf(model).map((g) => ({ kind: 'graph', ref: g.id, title: g.title, scope: g.scope }));
@@ -35,6 +58,13 @@ export function sitePages(model) {
 }
 
 export function siteTargetURL(model, target, from) {
+  if (model.diagramType === 'relational') {
+    const entry = modelRecords(model).find(item => item.record.id === target.ref);
+    if (!entry || ![entry.kind, 'record', ...(entry.kind === 'model' ? ['graph'] : []), ...(entry.kind === 'table' || entry.kind === 'column' ? ['node'] : []), ...(entry.kind === 'constraint' || entry.kind === 'association' ? ['edge'] : [])].includes(target.kind)) throw new Error(`Unknown relational target "${target.ref}".`);
+    if (target.workflowRef !== undefined || target.heading !== undefined || target.graphRef !== undefined && target.graphRef !== model.id) throw new Error('Relational targets cannot use workflow or document context.');
+    const destination = sitePages(model)[0].path;
+    return `${from === destination ? '' : relative(from, destination)}#record=${encodeURIComponent(target.ref)}`;
+  }
   let kind = target.kind, ref = target.ref, fragment = '';
   if (kind === 'document') {
     if (!(model.documents ?? []).some((d) => d.id === ref)) throw new Error(`Unknown document target "${ref}".`);
@@ -93,6 +123,7 @@ function sourcesFor(model, records) {
 }
 
 export function siteSearchIndex(model) {
+  if (model.diagramType === 'relational') return searchIndex(model, new Map(modelRecords(model).map(entry => [entry.record.id, [{ title: model.title, path: siteTargetURL(model, { kind: entry.kind, ref: entry.record.id }, 'index.html') }]])));
   const destinations=new Map();
   for(const page of sitePages(model).filter(p=>p.kind!=='document')) {
     const drawing=model.diagramType==='sequence'?model:page.kind==='workflow'?model.workflows.find(w=>w.id===page.ref):graphsOf(model).find(g=>g.id===page.ref);
@@ -129,6 +160,7 @@ export function renderSite(layout, options = {}) {
   if (Object.keys(options).some((k) => !['skin','publication','source'].includes(k))) throw new Error('Unknown site render option. The output structure is fixed.');
   const skin = options.skin ?? 'standard';
   if (!['standard','engineering','editorial'].includes(skin)) throw new Error('Skin must be standard, engineering, or editorial.');
+  if (layout.diagramType === 'relational') return renderRelationalSite(layout, options);
   const model = layout.model, pages = sitePages(model), files = new Map(), destinations = new Map();
   const source = options.source;
   if (source !== undefined && (!source || typeof source !== 'object' || Array.isArray(source) || Object.keys(source).some(k => !['snapshot','links','sourceTexts','evidenceDiagnostics'].includes(k)))) throw new Error('Invalid site source option.');

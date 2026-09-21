@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { schemaDiagnostics, prefixDiagnostics } from '../../knowledge/shared/diagnostics.mjs';
 import { validateWorkflows } from '../workflow/validate.mjs';
 import { validateSequenceLayout } from '../sequence/layout.mjs';
+import { validateRelationalLayout } from '../relational/layout.mjs';
 import { inspectReadability } from './readability.mjs';
 import { projectGraph } from '../../knowledge/architecture/graphs.mjs';
 import Ajv2020 from 'ajv/dist/2020.js';
@@ -25,6 +26,7 @@ function cutsBox(a, b, box) {
 }
 
 export function validateLayout(document, { expectedModel } = {}) {
+  if (document?.diagramType === 'relational') return validateRelationalLayout(document, { expectedModel });
   if (document?.diagramType === 'sequence') return validateSequenceLayout(document, { expectedModel });
   if (!validateShape(document)) return { ok: false, diagnostics: schemaDiagnostics(validateShape.errors, document, 'layout/schema', {root:validateShape.schema, ajv}) };
   const diagnostics = [];

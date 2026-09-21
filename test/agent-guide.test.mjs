@@ -12,7 +12,7 @@ import { recoverArtifact } from '../modules/render/artifacts.mjs';
 // Exercise the actual copyable examples, not separate fixtures that can drift.
 const guide = fs.readFileSync(new URL('../AGENT_GUIDE.md', import.meta.url), 'utf8');
 const examples = new Map([...guide.matchAll(/<!-- waxwing-example: ([a-z]+) -->\s*```json\n([\s\S]*?)\n```/g)].map((match) => [match[1], JSON.parse(match[2])]));
-for (const kind of ['architecture', 'scenario', 'behavior']) test(`single-file agent guide: ${kind} example builds and recovers without external documents`, async () => {
+for (const kind of ['architecture', 'scenario', 'behavior', 'relational']) test(`single-file agent guide: ${kind} example builds and recovers without external documents`, async () => {
   assert.ok(examples.has(kind), `Missing complete ${kind} example in AGENT_GUIDE.md`);
   const model = examples.get(kind), original = structuredClone(model);
   const result = validateModel(model);

@@ -32,7 +32,7 @@ try {
   assert.match(run(cli, ['--help']), /build-site/);
   const manifest = JSON.parse(fs.readFileSync(path.join(installed, 'package.json')));
   run(process.execPath, ['--input-type=module', '-e', `for (const entry of ${JSON.stringify(Object.keys(manifest.exports))}) await import(${JSON.stringify(manifest.name + '/')} + entry.slice(2));`]);
-  for (const [name, example] of [['architecture', 'waxwing'], ['sequence', 'sequence'], ['behavior', 'sequence-markets']]) {
+  for (const [name, example] of [['architecture', 'waxwing'], ['sequence', 'sequence'], ['behavior', 'sequence-markets'], ...(manifest.exports['./relational'] ? [['relational', 'relational']] : [])]) {
     const input = path.join(installed, 'examples', example, 'model.json');
     const output = path.join(temporary, name);
     const prepared = path.join(temporary, `${name}-prepared.json`);
