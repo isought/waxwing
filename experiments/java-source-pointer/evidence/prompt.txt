@@ -1,0 +1,1 @@
+In app/src/example/Quote.java, what do Quote.quote(99) and Quote.quote(105) return, and why? Give exact values and cite the implementation evidence, including the dependency behavior. Use only ordinary file listing, text search, and file reading within this checkout. Do not edit code or execute commands or tests. Keep the final answer under 200 words.

@@ -1,0 +1,21 @@
+{
+  "revision": "ebbd808127bc0fe33a76061e1740ec97e9160a32",
+  "model": "claude-sonnet-4-6",
+  "effort": "high",
+  "runs": 3,
+  "hint": null,
+  "fixture_size": {
+    "java_files": 29,
+    "java_lines": 327
+  },
+  "purpose": "Difficulty screen only: can agent miss a nested outcome-changing exception after calculating x?",
+  "expected": [
+    "A17 409 {\"code\":\"ACCOUNT_CAPACITY\",\"account\":\"A17\"}",
+    "B29 201 {\"account\":\"B29\",\"currency\":\"EUR\",\"x\":12960}",
+    "C31 201 {\"account\":\"C31\",\"currency\":\"EUR\",\"x\":12960}",
+    "D44 201 {\"account\":\"D44\",\"currency\":\"EUR\",\"x\":12960}"
+  ],
+  "scoring": "Exact terminal status/body for all four inputs plus correct path and strict boundary. A17 returning x is the target failure. Other errors recorded separately. Tool/quota failures are not reasoning failures.",
+  "stop_rule": "Three fresh identical tasks on this fixed fixture. No adaptive code changes and no hint runs in this batch. All correct => this fixture did not demonstrate target failure; do not infer performance on 10k-line repos.",
+  "source_verification": "Compiled all Java plus external Probe; ran each input on a fresh endpoint; outputs equal precomputed expectations. Neither probe nor expected output is in subject checkouts."
+}

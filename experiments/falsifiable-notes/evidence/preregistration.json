@@ -1,0 +1,43 @@
+{
+  "seed": 20260914,
+  "order": [
+    {
+      "run": "session-01",
+      "condition": "A"
+    },
+    {
+      "run": "session-02",
+      "condition": "A"
+    },
+    {
+      "run": "session-03",
+      "condition": "B"
+    },
+    {
+      "run": "session-04",
+      "condition": "C"
+    },
+    {
+      "run": "session-05",
+      "condition": "C"
+    },
+    {
+      "run": "session-06",
+      "condition": "B"
+    }
+  ],
+  "input_metric": "result.usage.input_tokens + cache_creation_input_tokens + cache_read_input_tokens; accumulated across API requests, not unique content",
+  "output_metric": "result.usage.output_tokens",
+  "median": "arithmetic mean of the two observations in each condition",
+  "quality_rule": "same frozen ten-check rubric; no lower median B vs A; record serious unsupported claims separately",
+  "correction_rule": "both C answers explicitly identify the false note, cite isZero, and distinguish negative balances",
+  "setup_result": "amber-otter-742",
+  "host_adapter": "CLAUDE.md contains only @AGENTS.md in every subject checkout; baseline AGENTS.md contains a neutral read-only instruction only",
+  "maximum_concurrency": 2,
+  "rubric_sha256": "dfb37e1a7d4ce055107d70e42c445668a9992dd7c3be9eb727669cf3f5a9da34",
+  "frozen_notes": {
+    "reviewed-notes.md": "dadfbbf0861ba3f47670425bbf4e006b83425d8415a1f5e24cf15538698d8d83",
+    "incorrect-notes.md": "443b76e1766848827c5237b299da3237eaaffee4b33fa517cf8f1ece7a9cfbba"
+  },
+  "frozen_at_unix": 1789431467.582719
+}
